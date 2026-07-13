@@ -14,17 +14,9 @@ $(info -- MDIR: $(MDIR))
 # compliant to last upstream kernel change as of a05b1d7
 CFLAGS_ksu.o += -DKSU_VERSION=32668
 
-KSU_PACKAGE_NAME := me.weishu.kernelsu
-KSU_EXPECTED_SIZE := 0x033b
-KSU_EXPECTED_HASH := c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6
-
+KSU_PACKAGE_NAME ?= ka.super
 $(info -- KernelSU Manager package name: $(KSU_PACKAGE_NAME))
-$(info -- KernelSU Manager signature size: $(KSU_EXPECTED_SIZE))
-$(info -- KernelSU Manager signature hash: $(KSU_EXPECTED_HASH))
-
 CFLAGS_ksu.o += -DKSU_PACKAGE_NAME=\"$(KSU_PACKAGE_NAME)\"
-CFLAGS_ksu.o += -DEXPECTED_SIZE=$(KSU_EXPECTED_SIZE)
-CFLAGS_ksu.o += -DEXPECTED_HASH=\"$(KSU_EXPECTED_HASH)\"
 
 ifeq ($(shell grep -q "^struct security_operations selinux_ops" $(srctree)/security/selinux/hooks.c; echo $$?),0)
 $(info -- KernelSU/compat: exported selinux_ops found!)
