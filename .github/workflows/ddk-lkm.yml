@@ -65,6 +65,19 @@ jobs:
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           EXTRA_ARGS="$EXTRA_ARGS KSU_IS_PR_BUILD=1"
         fi
+
+        # SM8750-only tuning for the 6.6/4K LKM; keep other KMIs and built-in builds generic.
+        if [ "${{ inputs.kmi }}" = "android15-6.6" ]; then
+          grep -q '^CONFIG_ARM64_4K_PAGES=y$' "$KDIR/.config"
+          export KCFLAGS="${KCFLAGS:+$KCFLAGS }-O2 -march=armv8-a+crc+lse+rcpc+flagm -mgeneral-regs-only -mno-outline-atomics"
+          echo "=== SM8750 LKM flags: $KCFLAGS ==="
+        fi
+
+        # Tensor G5-only tuning for the Android 16 / 6.12 LKM.
+        if [ "${{ inputs.kmi }}" = "android16-6.12" ]; then
+          export KCFLAGS="${KCFLAGS:+$KCFLAGS }-march=armv9.2-a"
+          echo "=== Tensor G5 LKM flags: $KCFLAGS ==="
+        fi
         CONFIG_KSU=m CC=clang make $EXTRA_ARGS
         
         echo "=== Build completed ==="
