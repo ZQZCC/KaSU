@@ -8,7 +8,10 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,7 +41,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ChromeReaderMode
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Download
@@ -59,7 +64,10 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -68,6 +76,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -94,20 +103,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.model.RepoModule
-import top.yukonga.miuix.kmp.utils.PagerNavigationSpringSpec
+import me.weishu.kernelsu.ui.component.PagerNavigationSpringSpec
 import me.weishu.kernelsu.ui.component.ScrollToTopOnChange
 import me.weishu.kernelsu.ui.component.dialog.ConfirmDialogHandle
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.markdown.GithubMarkdown
-import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
-import me.weishu.kernelsu.ui.component.material.ExpressiveTabRow
 import me.weishu.kernelsu.ui.component.material.SearchAppBar
 import me.weishu.kernelsu.ui.component.material.SegmentedColumn
-import me.weishu.kernelsu.ui.component.material.SegmentedItemContainer
 import me.weishu.kernelsu.ui.component.material.SegmentedListItem
 import me.weishu.kernelsu.ui.component.material.TonalCard
-import me.weishu.kernelsu.ui.component.material.TopBarBackButton
-import me.weishu.kernelsu.ui.component.material.expressiveTopAppBarColors
 import me.weishu.kernelsu.ui.component.statustag.StatusTag
 import me.weishu.kernelsu.ui.util.download
 import me.weishu.kernelsu.ui.util.isDownloadAvailable
@@ -128,7 +132,7 @@ fun ModuleRepoScreenMaterial(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val snackbarHostState = remember { SnackbarHostState() }
 
-    ExpressiveScaffold(
+    Scaffold(
         topBar = {
             SearchAppBar(
                 snackbarHostState = snackbarHostState,
@@ -138,7 +142,10 @@ fun ModuleRepoScreenMaterial(
                 onClearClick = actions.onClearSearch,
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
-                    TopBarBackButton(onClick = actions.onBack)
+                    IconButton(
+                        onClick = actions.onBack,
+                        content = { Icon(Icons.AutoMirrored.Outlined.ArrowBack, null) }
+                    )
                 },
                 actions = {
                     var showSortMenu by remember { mutableStateOf(false) }
@@ -174,12 +181,14 @@ fun ModuleRepoScreenMaterial(
                                             index = index,
                                             count = sortOptions.size
                                         ),
-                                        selectedLeadingIcon = {
-                                            Icon(
-                                                Icons.Filled.Check,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(MenuDefaults.LeadingIconSize),
-                                            )
+                                        leadingIcon = {
+                                            if (state.sortOrder == order) {
+                                                Icon(
+                                                    Icons.Filled.Check,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(MenuDefaults.LeadingIconSize),
+                                                )
+                                            }
                                         },
                                     )
                                 }
@@ -220,7 +229,7 @@ fun ModuleRepoScreenMaterial(
             ) {
                 if (state.offline) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = stringResource(R.string.network_offline), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = stringResource(R.string.network_offline), color = MaterialTheme.colorScheme.outline)
                         Spacer(Modifier.height(12.dp))
                         Button(
                             onClick = actions.onRefresh,
@@ -285,9 +294,10 @@ private fun RepoModuleList(
     LazyColumn(
         modifier = modifier,
         state = listState,
-        verticalArrangement = Arrangement.spacedBy(13.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(
             start = 16.dp,
+            top = 8.dp,
             end = 16.dp,
             bottom = 16.dp + bottomPadding
         ),
@@ -303,7 +313,7 @@ private fun RepoModuleList(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp, 14.dp, 16.dp, 10.dp)
+                        .padding(22.dp, 18.dp, 22.dp, 12.dp)
                 ) {
                     if (module.moduleName.isNotEmpty()) {
                         Text(
@@ -329,7 +339,7 @@ private fun RepoModuleList(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = module.summary,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.outline,
                             style = MaterialTheme.typography.bodyMedium,
                             overflow = TextOverflow.Ellipsis,
                             maxLines = 4,
@@ -357,13 +367,13 @@ private fun RepoModuleList(
                                 Icon(
                                     imageVector = Icons.Rounded.Star,
                                     contentDescription = "stars",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = MaterialTheme.colorScheme.outline,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
                                     text = module.stargazerCount.toString(),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.outline,
                                     modifier = Modifier.padding(start = 4.dp)
                                 )
                             }
@@ -373,7 +383,7 @@ private fun RepoModuleList(
                             Text(
                                 text = latestReleaseTime,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MaterialTheme.colorScheme.outline,
                             )
                         }
                     }
@@ -399,12 +409,21 @@ fun ModuleRepoDetailScreenMaterial(
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
-    ExpressiveScaffold(
+    LaunchedEffect(Unit) {
+        scrollBehavior.state.heightOffset = scrollBehavior.state.heightOffsetLimit
+    }
+
+    Scaffold(
         topBar = {
             LargeFlexibleTopAppBar(
                 title = { Text(text = module.moduleName) },
                 navigationIcon = {
-                    TopBarBackButton(onClick = actions.onBack)
+                    IconButton(onClick = actions.onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null,
+                        )
+                    }
                 },
                 actions = {
                     if (state.webUrl.isNotEmpty()) {
@@ -416,7 +435,10 @@ fun ModuleRepoDetailScreenMaterial(
                         }
                     }
                 },
-                colors = expressiveTopAppBarColors(),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
+                ),
                 scrollBehavior = scrollBehavior
             )
         },
@@ -473,17 +495,27 @@ fun ModuleRepoDetailScreenMaterial(
                     )
                 }
             }
-            ExpressiveTabRow(
+            PrimaryTabRow(
                 selectedTabIndex = pagerState.currentPage,
-                tabs = tabs,
-                onTabClick = { scope.launch {
-                    pagerState.animateScrollToPage(
-                        page = it,
-                        animationSpec = PagerNavigationSpringSpec,
-                    )
-                } },
+                containerColor = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
-            )
+            ) {
+                tabs.forEachIndexed { index, tab ->
+                    Tab(
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            scope.launch {
+                                pagerState.animateScrollToPage(
+                                    page = index,
+                                    animationSpec = PagerNavigationSpringSpec,
+                                )
+                            }
+                        },
+                        text = { Text(tab) },
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
@@ -576,7 +608,7 @@ fun ReleasesPage(
             end = innerPadding.calculateEndPadding(layoutDirection) + 16.dp,
             bottom = innerPadding.calculateBottomPadding(),
         ),
-        verticalArrangement = Arrangement.spacedBy(13.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (detailReleases.isNotEmpty()) {
             items(
@@ -585,81 +617,215 @@ fun ReleasesPage(
                 contentType = { "release" }
             ) { rel ->
                 val title = remember(rel.name, rel.tagName) { rel.name.ifBlank { rel.tagName } }
-                SegmentedColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    content = buildList<@Composable () -> Unit> {
-                        add {
-                            SegmentedListItem(
-                                headlineContent = { Text(text = title) },
-                                supportingContent = rel.tagName
-                                    .takeIf { it.isNotBlank() && it != title }
-                                    ?.let { tag -> { Text(text = tag) } },
-                                trailingContent = rel.publishedAt
-                                    .takeIf { it.isNotBlank() }
-                                    ?.let { date ->
-                                        { Text(text = date, style = MaterialTheme.typography.bodyMedium) }
-                                    },
+                TonalCard {
+                    Column(
+                        modifier = Modifier.padding(vertical = 18.dp, horizontal = 22.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = rel.tagName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            }
+                            Text(
+                                text = rel.publishedAt,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.align(Alignment.Top)
                             )
                         }
-                        if (rel.descriptionHTML.isNotEmpty()) {
-                            add {
-                                SegmentedItemContainer {
-                                    val descReady = rememberContentReady()
-                                    var descLoaded by remember(rel.descriptionHTML) { mutableStateOf(false) }
-                                    val descAlpha by animateFloatAsState(
-                                        targetValue = if (descLoaded) 1f else 0f,
-                                        animationSpec = tween(durationMillis = 300),
-                                        label = "ReleaseDescAlpha",
-                                    )
-                                    val descPlaceholderAlpha by animateFloatAsState(
-                                        targetValue = if (descLoaded) 0f else 1f,
-                                        animationSpec = tween(durationMillis = 150),
-                                        label = "ReleaseDescPlaceholderAlpha",
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                                            .animateContentSize(animationSpec = tween(durationMillis = 300)),
-                                    ) {
-                                        if (descReady) {
-                                            Box(modifier = Modifier.graphicsLayer { this.alpha = descAlpha }) {
-                                                GithubMarkdown(
-                                                    content = rel.descriptionHTML,
-                                                    onLoadingChange = { descLoaded = !it },
-                                                )
-                                            }
+
+                        AnimatedVisibility(
+                            visible = rel.descriptionHTML.isNotEmpty(),
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Column {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 4.dp),
+                                    thickness = Dp.Hairline,
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                )
+                                val descReady = rememberContentReady()
+                                var descLoaded by remember(rel.descriptionHTML) { mutableStateOf(false) }
+                                val descAlpha by animateFloatAsState(
+                                    targetValue = if (descLoaded) 1f else 0f,
+                                    animationSpec = tween(durationMillis = 300),
+                                    label = "ReleaseDescAlpha",
+                                )
+                                val descPlaceholderAlpha by animateFloatAsState(
+                                    targetValue = if (descLoaded) 0f else 1f,
+                                    animationSpec = tween(durationMillis = 150),
+                                    label = "ReleaseDescPlaceholderAlpha",
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .animateContentSize(animationSpec = tween(durationMillis = 300)),
+                                ) {
+                                    if (descReady) {
+                                        Box(modifier = Modifier.graphicsLayer { this.alpha = descAlpha }) {
+                                            GithubMarkdown(
+                                                content = rel.descriptionHTML,
+                                                onLoadingChange = { descLoaded = !it },
+                                            )
                                         }
-                                        if (descPlaceholderAlpha > 0f) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(72.dp)
-                                                    .graphicsLayer { this.alpha = descPlaceholderAlpha },
-                                                contentAlignment = Alignment.Center,
-                                            ) {
-                                                LoadingIndicator()
-                                            }
+                                    }
+                                    if (descPlaceholderAlpha > 0f) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(72.dp)
+                                                .graphicsLayer { this.alpha = descPlaceholderAlpha },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            LoadingIndicator()
                                         }
                                     }
                                 }
                             }
                         }
-                        rel.assets.forEach { asset ->
-                            add {
-                                ReleaseAssetSegmentedItem(
-                                    asset = asset,
-                                    confirmTitle = confirmTitle,
-                                    confirmDialog = confirmDialog,
-                                    scope = scope,
-                                    context = context,
-                                    onInstallModule = onInstallModule,
-                                    setPendingDownload = setPendingDownload,
+
+                        AnimatedVisibility(
+                            visible = rel.assets.isNotEmpty(),
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Column {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    thickness = Dp.Hairline
                                 )
+
+                                rel.assets.forEachIndexed { index, asset ->
+                                    val fileName = asset.name
+                                    val sizeText = remember(asset.size) {
+                                        val s = asset.size
+                                        when {
+                                            s >= 1024L * 1024L * 1024L -> String.format("%.1f GB", s / (1024f * 1024f * 1024f))
+                                            s >= 1024L * 1024L -> String.format("%.1f MB", s / (1024f * 1024f))
+                                            s >= 1024L -> String.format("%.0f KB", s / 1024f)
+                                            else -> "$s B"
+                                        }
+                                    }
+                                    val sizeAndDownloads =
+                                        remember(sizeText, asset.downloadCount) { "$sizeText · ${asset.downloadCount} downloads" }
+                                    var isDownloading by remember(fileName, asset.downloadUrl) { mutableStateOf(false) }
+                                    var progress by remember(fileName, asset.downloadUrl) { mutableIntStateOf(0) }
+                                    var downloadedUri by remember(fileName, asset.downloadUrl) { mutableStateOf<Uri?>(null) }
+                                    val isDownloaded = downloadedUri != null
+                                    val onClickDownload = remember(fileName, asset.downloadUrl) {
+                                        {
+                                            val startText = context.getString(R.string.module_start_downloading, fileName)
+                                            setPendingDownload {
+                                                isDownloading = true
+                                                scope.launch(Dispatchers.IO) {
+                                                    download(
+                                                        asset.downloadUrl,
+                                                        fileName,
+                                                        onDownloaded = { uri ->
+                                                            isDownloading = false
+                                                            downloadedUri = uri
+                                                        },
+                                                        onDownloading = { isDownloading = true },
+                                                        onProgress = { p -> scope.launch(Dispatchers.Main) { progress = p } }
+                                                    )
+                                                }
+                                            }
+                                            confirmDialog.showConfirm(title = confirmTitle, content = startText)
+                                        }
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = fileName,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = sizeAndDownloads,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.outline,
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            )
+                                        }
+                                        if (isDownloaded) {
+                                            FilledTonalButton(
+                                                onClick = {
+                                                    val uri = downloadedUri ?: return@FilledTonalButton
+                                                    val file = uri.path?.let { java.io.File(it) }
+                                                    if (file != null && file.exists()) {
+                                                        onInstallModule(uri)
+                                                    } else {
+                                                        downloadedUri = null
+                                                    }
+                                                },
+                                                contentPadding = ButtonDefaults.TextButtonContentPadding
+                                            ) {
+                                                Icon(
+                                                    modifier = Modifier.size(20.dp),
+                                                    imageVector = Icons.Outlined.InstallMobile,
+                                                    contentDescription = stringResource(R.string.install)
+                                                )
+                                                Text(
+                                                    modifier = Modifier.padding(start = 7.dp),
+                                                    text = stringResource(R.string.install),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                )
+                                            }
+                                        } else {
+                                            FilledTonalButton(
+                                                onClick = onClickDownload,
+                                                enabled = !isDownloading,
+                                                contentPadding = ButtonDefaults.TextButtonContentPadding
+                                            ) {
+                                                if (isDownloading) {
+                                                    CircularWavyProgressIndicator(
+                                                        progress = { progress / 100f },
+                                                        modifier = Modifier.size(20.dp),
+                                                    )
+                                                } else {
+                                                    Icon(
+                                                        modifier = Modifier.size(20.dp),
+                                                        imageVector = Icons.Outlined.Download,
+                                                        contentDescription = stringResource(R.string.download)
+                                                    )
+                                                    Text(
+                                                        modifier = Modifier.padding(start = 7.dp),
+                                                        text = stringResource(R.string.download),
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (index != rel.assets.lastIndex) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(vertical = 8.dp),
+                                            thickness = Dp.Hairline
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
-                )
+                }
             }
         }
     }

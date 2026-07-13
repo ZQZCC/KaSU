@@ -23,10 +23,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import me.weishu.kernelsu.ui.LocalUiMode
-import me.weishu.kernelsu.ui.UiMode
 import me.weishu.kernelsu.ui.util.AppIconCache
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 
 private data class IconKey(val uid: Int, val packageName: String, val sourceDir: String?)
@@ -103,15 +100,10 @@ fun AppIconImage(
 
 @Composable
 private fun PlaceHolderBox(modifier: Modifier = Modifier) {
-    val containerColor = when (LocalUiMode.current) {
-        UiMode.Material -> MaterialTheme.colorScheme.secondaryContainer
-        UiMode.Miuix -> MiuixTheme.colorScheme.secondaryContainer
-    }
-
     Box(
         modifier = modifier
             .padding(4.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(containerColor)
+            .background(MaterialTheme.colorScheme.secondaryContainer)
     )
 }

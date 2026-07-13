@@ -1,7 +1,7 @@
 use crate::defs;
 use anyhow::Result;
-use jwalk::{Parallelism::Serial, WalkDir};
 use std::path::Path;
+use walkdir::{DirEntry, WalkDir};
 
 use anyhow::{Context, Ok};
 use extattr::{Flags as XattrFlags, lsetxattr};
@@ -37,9 +37,17 @@ pub fn setsyscon<P: AsRef<Path>>(path: P) -> Result<()> {
     lsetfilecon(path, SYSTEM_CON)
 }
 
+fn is_visible(entry: &DirEntry) -> bool {
+    entry.depth() == 0
+        || entry
+            .file_name()
+            .to_str()
+            .is_none_or(|name| !name.starts_with('.'))
+}
+
 pub fn restore_syscon<P: AsRef<Path>>(dir: P) -> Result<()> {
-    for dir_entry in WalkDir::new(dir).parallelism(Serial) {
-        if let Some(path) = dir_entry.ok().map(|dir_entry| dir_entry.path()) {
+    for dir_entry in WalkDir::new(dir).into_iter().filter_entry(is_visible) {
+        if let Some(path) = dir_entry.ok().map(DirEntry::into_path) {
             setsyscon(&path)?;
         }
     }
@@ -47,8 +55,8 @@ pub fn restore_syscon<P: AsRef<Path>>(dir: P) -> Result<()> {
 }
 
 fn restore_syscon_if_unlabeled<P: AsRef<Path>>(dir: P) -> Result<()> {
-    for dir_entry in WalkDir::new(dir).parallelism(Serial) {
-        if let Some(path) = dir_entry.ok().map(|dir_entry| dir_entry.path())
+    for dir_entry in WalkDir::new(dir).into_iter().filter_entry(is_visible) {
+        if let Some(path) = dir_entry.ok().map(DirEntry::into_path)
             && let anyhow::Result::Ok(con) = lgetfilecon(&path)
             && (con == UNLABEL_CON || con.is_empty())
         {
