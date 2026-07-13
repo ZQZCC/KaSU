@@ -407,7 +407,7 @@ install_module() {
     set_permissions
   else
     print_title "$MODNAME" "by $MODAUTH"
-    print_title "Powered by KernelSU"
+    print_title "Powered by KaSU"
 
     unzip -o "$ZIPFILE" customize.sh -d $MODPATH >&2
 
