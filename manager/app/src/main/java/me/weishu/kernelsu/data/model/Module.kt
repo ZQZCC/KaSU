@@ -17,6 +17,7 @@ data class Module(
     val hasWebUi: Boolean,
     val hasActionScript: Boolean,
     val metamodule: Boolean,
+    val size: String,
     val actionIconPath: String?,
     val webUiIconPath: String?,
 )

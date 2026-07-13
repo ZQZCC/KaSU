@@ -1,15 +1,13 @@
 package me.weishu.kernelsu.ui.theme
 
+import android.content.Context
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalContext
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
-import me.weishu.kernelsu.data.repository.SettingsRepository
-import me.weishu.kernelsu.data.repository.SettingsRepositoryImpl
-import me.weishu.kernelsu.ui.LocalUiMode
-import me.weishu.kernelsu.ui.UiMode
 
 enum class ColorMode(val value: Int) {
     SYSTEM(0),
@@ -65,35 +63,25 @@ fun ColorSpec.SpecVersion.effectiveFor(style: PaletteStyle): ColorSpec.SpecVersi
     }
 
 object ThemeController {
-    fun getAppSettings(repo: SettingsRepository = SettingsRepositoryImpl()): AppSettings {
-        val uiMode = repo.uiMode
-        var colorModeValue = repo.themeMode
-
-        if (uiMode == "miuix") {
-            val miuixMonet = repo.miuixMonet
-            val colorMode = ColorMode.fromValue(colorModeValue)
-            colorModeValue = if (!miuixMonet && colorMode.isMonet) {
-                colorMode.toNonMonetMode()
-            } else if (miuixMonet && !colorMode.isMonet) {
-                colorMode.toMonetMode()
-            } else {
-                colorModeValue
-            }
-        }
+    fun getAppSettings(context: Context): AppSettings {
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val colorModeValue = prefs.getInt("color_mode", ColorMode.SYSTEM.value)
 
         val colorMode = ColorMode.fromValue(colorModeValue)
-        val keyColor = repo.keyColor
-        val paletteStyleStr = repo.colorStyle
+        val keyColor = prefs.getInt("key_color", 0)
+        val paletteStyleStr = prefs.getString("color_style", PaletteStyle.TonalSpot.name)
+            ?: PaletteStyle.TonalSpot.name
         val paletteStyle = try {
             PaletteStyle.valueOf(paletteStyleStr)
         } catch (_: Exception) {
             PaletteStyle.TonalSpot
         }
-        val colorSpecStr = repo.colorSpec
+        val colorSpecStr = prefs.getString("color_spec", ColorSpec.SpecVersion.Default.name)
+            ?: ColorSpec.SpecVersion.Default.name
         val colorSpec = try {
             ColorSpec.SpecVersion.valueOf(colorSpecStr)
         } catch (_: Exception) {
-            ColorSpec.SpecVersion.SPEC_2025
+            ColorSpec.SpecVersion.Default
         }
 
         return AppSettings(colorMode, keyColor, paletteStyle, colorSpec)
@@ -102,22 +90,16 @@ object ThemeController {
 
 @Composable
 fun KernelSUTheme(
-    appSettings: AppSettings = ThemeController.getAppSettings(),
-    uiMode: UiMode = LocalUiMode.current,
+    appSettings: AppSettings? = null,
     content: @Composable () -> Unit
 ) {
+    val context = LocalContext.current
+    val currentAppSettings = appSettings ?: ThemeController.getAppSettings(context)
 
-    when (uiMode) {
-        UiMode.Miuix -> MiuixKernelSUTheme(
-            appSettings = appSettings,
-            content = content
-        )
-
-        UiMode.Material -> MaterialKernelSUTheme(
-            appSettings = appSettings,
-            content = content
-        )
-    }
+    MaterialKernelSUTheme(
+        appSettings = currentAppSettings,
+        content = content
+    )
 }
 
 @Composable
@@ -131,13 +113,4 @@ fun isInDarkTheme(): Boolean {
 }
 
 val LocalColorMode = staticCompositionLocalOf { 0 }
-
-val LocalEnableBlur = staticCompositionLocalOf { false }
-
-val LocalEnableFloatingBottomBar = staticCompositionLocalOf { false }
-
-val LocalEnableFloatingBottomBarBlur = staticCompositionLocalOf { false }
-
-val LocalEnableNavigationBadge = staticCompositionLocalOf { true }
-
 val LocalModuleDescriptionMaxLines = staticCompositionLocalOf { 4 }

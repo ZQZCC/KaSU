@@ -3,18 +3,28 @@ package me.weishu.kernelsu.ui.component.statustag
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import me.weishu.kernelsu.ui.LocalUiMode
-import me.weishu.kernelsu.ui.UiMode
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun StatusTag(
     label: String,
     modifier: Modifier = Modifier,
     backgroundColor: Color,
-    contentColor: Color
+    contentColor: Color,
+    minHeight: Dp? = null,
+    horizontalPadding: Dp = 4.dp,
+    verticalPadding: Dp = 2.dp,
+    maxLines: Int = Int.MAX_VALUE
 ) {
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> StatusTagMiuix(label, modifier, backgroundColor, contentColor)
-        UiMode.Material -> StatusTagMaterial(label, modifier, backgroundColor, contentColor)
-    }
+    StatusTagMaterial(
+        label = label,
+        modifier = modifier,
+        backgroundColor = backgroundColor,
+        contentColor = contentColor,
+        minHeight = minHeight,
+        horizontalPadding = horizontalPadding,
+        verticalPadding = verticalPadding,
+        maxLines = maxLines
+    )
 }

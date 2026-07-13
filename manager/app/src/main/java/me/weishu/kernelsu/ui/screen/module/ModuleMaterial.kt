@@ -11,6 +11,9 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,6 +21,7 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -46,9 +50,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -62,8 +65,8 @@ import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CheckableDropdownMenuItem
 import androidx.compose.material3.DropdownMenuGroup
+import androidx.compose.material3.CheckableDropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -75,6 +78,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SmallExtendedFloatingActionButton
 import androidx.compose.material3.SnackbarDuration
@@ -93,7 +97,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -121,6 +124,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Job
@@ -134,11 +138,11 @@ import me.weishu.kernelsu.ui.component.ObserveAsEvents
 import me.weishu.kernelsu.ui.component.ScrollToTopOnChange
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.dialog.rememberLoadingDialog
-import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.ExpressiveSwitch
 import me.weishu.kernelsu.ui.component.material.SearchAppBar
 import me.weishu.kernelsu.ui.component.material.SnackBarHost
 import me.weishu.kernelsu.ui.component.material.TonalCard
+import me.weishu.kernelsu.ui.component.rebootlistpopup.RebootListPopup
 import me.weishu.kernelsu.ui.component.statustag.StatusTag
 import me.weishu.kernelsu.ui.theme.LocalModuleDescriptionMaxLines
 import me.weishu.kernelsu.ui.util.reboot
@@ -164,7 +168,7 @@ fun ModulePagerMaterial(
 
     val listState = rememberLazyListState()
     val searchListState = rememberLazyListState()
-    val refreshTick = remember { mutableIntStateOf(0) }
+    val refreshTick = remember { mutableStateOf(0) }
     val threshold = with(LocalDensity.current) { 100.dp.toPx() }
     val fabExpanded by remember {
         var lastIndex = 0
@@ -268,7 +272,7 @@ fun ModulePagerMaterial(
         }
     }
 
-    ExpressiveScaffold(
+    Scaffold(
         topBar = {
             SearchAppBar(
                 title = { Text(stringResource(R.string.module)) },
@@ -287,6 +291,8 @@ fun ModulePagerMaterial(
                     }
                 },
                 actions = {
+                    RebootListPopup()
+
                     var showDropdown by remember { mutableStateOf(false) }
                     IconButton(
                         onClick = { showDropdown = true }
@@ -301,7 +307,13 @@ fun ModulePagerMaterial(
                         ) {
                             DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                                 CheckableDropdownMenuItem(
-                                    text = { Text(stringResource(R.string.module_sort_action_first)) },
+                                    text = {
+                                        Text(
+                                            stringResource(R.string.module_sort_action_first),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    },
                                     checked = uiState.sortActionFirst,
                                     checkedLeadingIcon = {
                                         Icon(
@@ -317,7 +329,13 @@ fun ModulePagerMaterial(
                                     shapes = MenuDefaults.itemShape(index = 0, count = 2),
                                 )
                                 CheckableDropdownMenuItem(
-                                    text = { Text(stringResource(R.string.module_sort_enabled_first)) },
+                                    text = {
+                                        Text(
+                                            stringResource(R.string.module_sort_enabled_first),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    },
                                     checked = uiState.sortEnabledFirst,
                                     checkedLeadingIcon = {
                                         Icon(
@@ -414,7 +432,7 @@ fun ModulePagerMaterial(
             onRefresh = {
                 haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                 actions.onRefresh()
-                refreshTick.intValue++
+                refreshTick.value++
             },
             state = pullToRefreshState,
             indicator = {
@@ -445,7 +463,7 @@ fun ModulePagerMaterial(
                 listState,
                 uiState.sortEnabledFirst,
                 uiState.sortActionFirst,
-                refreshTick.intValue,
+                refreshTick.value,
                 isBusy = { latestRefreshing.value },
             ) { latestModuleList.value }
             ModuleList(
@@ -491,9 +509,10 @@ private fun ModuleList(
     LazyColumn(
         state = listState,
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(13.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(
             start = 16.dp,
+            top = 8.dp,
             end = 16.dp,
             bottom = 16.dp + bottomInnerPadding + 56.dp + 16.dp
         ),
@@ -557,18 +576,14 @@ private fun ModuleShortcutSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberBottomSheetState(
-            initialValue = SheetValue.Hidden,
-            enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
-        )
+        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden, enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded))
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp)
-                .verticalScroll(rememberScrollState())
         ) {
             Text(
                 text = stringResource(R.string.module_shortcut_title),
@@ -577,7 +592,7 @@ private fun ModuleShortcutSheet(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .padding(vertical = 13.dp)
+                    .padding(vertical = 16.dp)
                     .size(100.dp)
                     .clip(RoundedCornerShape(25.dp))
             ) {
@@ -606,16 +621,8 @@ private fun ModuleShortcutSheet(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(
-                    onClick = onPickShortcutIcon,
-                    colors = ButtonDefaults.textButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    )
-                ) {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                        text = stringResource(id = R.string.module_shortcut_icon_pick)
-                    )
+                TextButton(onClick = onPickShortcutIcon) {
+                    Text(stringResource(id = R.string.module_shortcut_icon_pick))
                 }
                 AnimatedVisibility(
                     visible = shortcutState.iconUri != shortcutState.defaultShortcutIconUri,
@@ -638,18 +645,13 @@ private fun ModuleShortcutSheet(
                 value = shortcutState.name,
                 onValueChange = shortcutState::updateName,
                 label = { Text(stringResource(id = R.string.module_shortcut_name_label)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 3.dp)
+                modifier = Modifier.fillMaxWidth()
             )
             if (shortcutState.hasExistingShortcut) {
                 TextButton(
                     onClick = onDeleteShortcut,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.textButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.error,
-                    )
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
                     Text(stringResource(id = R.string.module_shortcut_delete))
                 }
@@ -657,14 +659,11 @@ private fun ModuleShortcutSheet(
             TextButton(
                 onClick = ::copyShortcutUrl,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.textButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                )
             ) {
                 Text(stringResource(id = R.string.module_shortcut_copy_scheme))
             }
             Row(
-                horizontalArrangement = Arrangement.spacedBy(13.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedButton(
@@ -686,10 +685,12 @@ private fun ModuleShortcutSheet(
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ModuleItem(
     module: Module,
@@ -702,30 +703,47 @@ private fun ModuleItem(
     onExecuteAction: () -> Unit,
     closeSearch: () -> Unit
 ) {
-    val hasDescription = module.description.isNotBlank()
     val maxLinesLimit = LocalModuleDescriptionMaxLines.current
-    var expanded by rememberSaveable(module.id) { mutableStateOf(false) }
-    val canOpenWebUi = module.hasWebUi && !module.remove && module.enabled
-    val cardInteractionSource = remember { MutableInteractionSource() }
-    val descriptionInteractionSource = remember { MutableInteractionSource() }
-
     TonalCard(
-        modifier = Modifier.fillMaxWidth(),
-        interactionSource = cardInteractionSource,
-        onClick = if (canOpenWebUi) {
-            {
-                onOpenWebUi()
-                closeSearch()
-            }
-        } else if (hasDescription) {
-            { expanded = !expanded }
-        } else null
+        modifier = Modifier.fillMaxWidth()
     ) {
         val haptic = LocalHapticFeedback.current
         val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
+        val interactionSource = remember { MutableInteractionSource() }
+        val indication = LocalIndication.current
+        var expanded by rememberSaveable(module.id) { mutableStateOf(false) }
+        var isOverflowing by remember { mutableStateOf(false) }
+        val hasUpdate = updateUrl.isNotEmpty()
+        val hasEnabledAction = module.enabled && (module.hasActionScript || module.hasWebUi)
+        val showActionAreaByDefault = hasEnabledAction || hasUpdate || module.remove
+        var actionAreaExpanded by rememberSaveable(module.id, module.enabled, hasUpdate, module.remove) {
+            mutableStateOf(false)
+        }
+        val showActionArea = showActionAreaByDefault || actionAreaExpanded
 
         Column(
-            modifier = Modifier.padding(16.dp, 14.dp, 16.dp, 10.dp)
+            modifier = Modifier
+                .run {
+                    when {
+                         module.hasWebUi && module.enabled -> toggleable(
+                            value = module.enabled,
+                            enabled = !module.remove && module.enabled,
+                            interactionSource = interactionSource,
+                            role = Role.Button,
+                            indication = indication,
+                            onValueChange = { onOpenWebUi() }
+                        )
+                        !showActionAreaByDefault -> clickable(
+                            interactionSource = interactionSource,
+                            indication = indication,
+                            role = Role.Button
+                        ) {
+                            actionAreaExpanded = !actionAreaExpanded
+                        }
+                        else -> this
+                    }
+                }
+                .padding(22.dp, 18.dp, 22.dp, 12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -777,30 +795,40 @@ private fun ModuleItem(
                 }
             }
 
-            if (hasDescription) {
-                Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                ExpandableDescriptionText(
-                    text = module.description,
-                    expanded = expanded,
-                    maxLinesLimit = maxLinesLimit,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .then(
-                            if (canOpenWebUi) {
-                                Modifier.clickable(
-                                    interactionSource = descriptionInteractionSource,
-                                    indication = null
-                                ) { expanded = !expanded }
-                            } else {
-                                Modifier
-                            }
-                        ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textDecoration = textDecoration
-                )
-            }
+            Text(
+                modifier = Modifier
+                    .animateContentSize(
+                        animationSpec = tween(
+                            durationMillis = 250,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                    .then(
+                        if (isOverflowing || expanded) {
+                            Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { expanded = !expanded }
+                        } else {
+                            Modifier
+                        }
+                    ),
+                text = module.description,
+                color = MaterialTheme.colorScheme.outline,
+                style = MaterialTheme.typography.bodyMedium,
+                overflow = if (expanded) TextOverflow.Clip else TextOverflow.Ellipsis,
+                maxLines = if (expanded) Int.MAX_VALUE else maxLinesLimit,
+                textDecoration = textDecoration,
+                onTextLayout = { textLayoutResult ->
+                    isOverflowing = if (expanded) {
+                        textLayoutResult.lineCount > maxLinesLimit
+                    } else {
+                        textLayoutResult.hasVisualOverflow
+                    }
+                }
+            )
 
             Row(modifier = Modifier.padding(vertical = 4.dp)) {
                 if (module.metamodule) {
@@ -808,153 +836,170 @@ private fun ModuleItem(
                         "META",
                         modifier = Modifier.padding(bottom = 4.dp),
                         contentColor = MaterialTheme.colorScheme.onPrimary,
-                        backgroundColor = MaterialTheme.colorScheme.primary
+                        backgroundColor = MaterialTheme.colorScheme.primary,
+                        minHeight = 24.dp,
+                        horizontalPadding = 6.dp,
+                        maxLines = 1
+                    )
+                }
+                if (module.size.isNotEmpty()) {
+                    StatusTag(
+                        module.size,
+                        modifier = Modifier.padding(bottom = 4.dp),
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                        minHeight = 24.dp,
+                        horizontalPadding = 6.dp,
+                        maxLines = 1
                     )
                 }
             }
 
-            HorizontalDivider(thickness = Dp.Hairline)
+            AnimatedVisibility(visible = showActionArea) {
+                Column {
+                    HorizontalDivider(thickness = Dp.Hairline)
 
-            Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val hasUpdate = updateUrl.isNotEmpty()
-                val actionButtonsEnabled = !module.remove && module.enabled
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val actionButtonsEnabled = !module.remove && module.enabled
 
-                AnimatedVisibility(
-                    visible = actionButtonsEnabled,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (module.hasActionScript) {
-                            CombinedClickableButton(
-                                onClick = {
-                                    onExecuteAction()
-                                    closeSearch()
-                                },
-                                onLongClick = { onAddShortcut(ShortcutType.Action) },
-                                modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                                shape = ButtonDefaults.filledTonalShape,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                ),
-                                contentPadding = ButtonDefaults.TextButtonContentPadding
-                            ) {
-                                Icon(
-                                    modifier = Modifier.size(20.dp),
-                                    imageVector = Icons.Outlined.PlayArrow,
-                                    contentDescription = null
-                                )
-                                if (!module.hasWebUi && !hasUpdate) {
-                                    Text(
-                                        modifier = Modifier.padding(start = 7.dp),
-                                        text = stringResource(R.string.action),
-                                        fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize
-                                    )
+                        AnimatedVisibility(
+                            visible = actionButtonsEnabled,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                if (module.hasActionScript) {
+                                    CombinedClickableButton(
+                                        onClick = {
+                                            onExecuteAction()
+                                            closeSearch()
+                                        },
+                                        onLongClick = { onAddShortcut(ShortcutType.Action) },
+                                        modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                                        shape = ButtonDefaults.filledTonalShape,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                        ),
+                                        contentPadding = ButtonDefaults.TextButtonContentPadding
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier.size(20.dp),
+                                            imageVector = Icons.Outlined.PlayArrow,
+                                            contentDescription = null
+                                        )
+                                        if (!module.hasWebUi && !hasUpdate) {
+                                            Text(
+                                                modifier = Modifier.padding(start = 7.dp),
+                                                text = stringResource(R.string.action),
+                                                fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+                                                fontSize = MaterialTheme.typography.labelMedium.fontSize
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (module.hasWebUi) {
+                                    CombinedClickableButton(
+                                        onClick = {
+                                            onOpenWebUi()
+                                            closeSearch()
+                                        },
+                                        onLongClick = { onAddShortcut(ShortcutType.WebUI) },
+                                        modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                                        shape = ButtonDefaults.filledTonalShape,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                        ),
+                                        contentPadding = ButtonDefaults.TextButtonContentPadding
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier.size(20.dp),
+                                            imageVector = Icons.Outlined.Code,
+                                            contentDescription = null
+                                        )
+                                        if (!module.hasActionScript && !hasUpdate) {
+                                            Text(
+                                                modifier = Modifier.padding(start = 7.dp),
+                                                fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+                                                fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                                text = stringResource(R.string.open)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        if (module.hasWebUi) {
-                            CombinedClickableButton(
-                                onClick = {
-                                    onOpenWebUi()
-                                    closeSearch()
-                                },
-                                onLongClick = { onAddShortcut(ShortcutType.WebUI) },
-                                modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                                shape = ButtonDefaults.filledTonalShape,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                ),
-                                contentPadding = ButtonDefaults.TextButtonContentPadding
-                            ) {
-                                Icon(
-                                    modifier = Modifier.size(20.dp),
-                                    imageVector = Icons.Outlined.Code,
-                                    contentDescription = null
-                                )
-                                if (!module.hasActionScript && !hasUpdate) {
-                                    Text(
-                                        modifier = Modifier.padding(start = 7.dp),
-                                        fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                        text = stringResource(R.string.open)
-                                    )
+                        Spacer(modifier = Modifier.weight(1f, true))
+
+                        AnimatedVisibility(
+                            visible = hasUpdate,
+                            enter = fadeIn(),
+                            exit = fadeOut()
+                        ) {
+                            Row {
+                                Button(
+                                    modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                                    enabled = !module.remove,
+                                    onClick = onUpdate,
+                                    shape = ButtonDefaults.textShape,
+                                    contentPadding = ButtonDefaults.TextButtonContentPadding
+                                ) {
+                                     Icon(
+                                         modifier = Modifier.size(20.dp),
+                                         imageVector = Icons.Outlined.Download,
+                                         contentDescription = null
+                                     )
+                                    if (!module.hasActionScript || !module.hasWebUi) {
+                                        Text(
+                                            modifier = Modifier.padding(start = 7.dp),
+                                            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+                                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                            text = stringResource(R.string.module_update)
+                                        )
+                                    }
                                 }
+
+                                Spacer(Modifier.width(12.dp))
                             }
                         }
-                    }
-                }
 
-                Spacer(modifier = Modifier.weight(1f, true))
-
-                AnimatedVisibility(
-                    visible = hasUpdate,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Row {
-                        Button(
+                        FilledTonalButton(
                             modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                            enabled = !module.remove,
-                            onClick = onUpdate,
-                            shape = ButtonDefaults.textShape,
+                            onClick = onUninstallClicked,
                             contentPadding = ButtonDefaults.TextButtonContentPadding
                         ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                imageVector = Icons.Outlined.Download,
-                                contentDescription = null
-                            )
-                            if (!module.hasActionScript || !module.hasWebUi) {
+                            if (!module.remove) {
+                                Icon(
+                                    modifier = Modifier.size(20.dp),
+                                    imageVector = Icons.Outlined.Delete,
+                                    contentDescription = null,
+                                )
+                            } else {
+                                Icon(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .rotate(180f),
+                                    imageVector = Icons.Outlined.Refresh,
+                                    contentDescription = null,
+                                )
+                            }
+                            if (!module.hasActionScript && !module.hasWebUi || !hasUpdate) {
                                 Text(
                                     modifier = Modifier.padding(start = 7.dp),
                                     fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
                                     fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                    text = stringResource(R.string.module_update)
+                                    text = stringResource(if (module.remove) R.string.undo else R.string.uninstall)
                                 )
                             }
                         }
-
-                        Spacer(Modifier.width(12.dp))
-                    }
-                }
-
-                FilledTonalButton(
-                    modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                    onClick = onUninstallClicked,
-                    contentPadding = ButtonDefaults.TextButtonContentPadding
-                ) {
-                    if (!module.remove) {
-                        Icon(
-                            modifier = Modifier.size(20.dp),
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = null,
-                        )
-                    } else {
-                        Icon(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .rotate(180f),
-                            imageVector = Icons.Outlined.Refresh,
-                            contentDescription = null,
-                        )
-                    }
-                    if (!module.hasActionScript && !module.hasWebUi || !hasUpdate) {
-                        Text(
-                            modifier = Modifier.padding(start = 7.dp),
-                            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                            text = stringResource(if (module.remove) R.string.undo else R.string.uninstall)
-                        )
                     }
                 }
             }
