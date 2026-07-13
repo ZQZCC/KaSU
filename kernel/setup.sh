@@ -3,6 +3,25 @@ set -eu
 
 GKI_ROOT=$(pwd)
 
+normalize_repo_url() {
+    case "$1" in
+        http://*|https://*|git@*|ssh://*|/*|./*|../*)
+            printf '%s\n' "$1"
+            ;;
+        */*.git)
+            printf 'https://github.com/%s\n' "$1"
+            ;;
+        */*)
+            printf 'https://github.com/%s.git\n' "$1"
+            ;;
+        *)
+            printf '%s\n' "$1"
+            ;;
+    esac
+}
+
+KSU_REPO=$(normalize_repo_url "${KSU_REPO:-https://github.com/ZQZCC/xxKSU.git}")
+
 display_usage() {
     echo "Usage: $0 [--cleanup | <commit-or-tag>]"
     echo "  --cleanup:              Cleans up previous modifications made by the script."
@@ -39,15 +58,24 @@ perform_cleanup() {
 # Sets up or update KernelSU environment
 setup_kernelsu() {
     echo "[+] Setting up KernelSU..."
-    test -d "$GKI_ROOT/KernelSU" || git clone https://github.com/backslashxx/KernelSU && echo "[+] Repository cloned."
+    if [ ! -d "$GKI_ROOT/KernelSU" ]; then
+        git clone "$KSU_REPO" "$GKI_ROOT/KernelSU"
+        echo "[+] Repository cloned from $KSU_REPO."
+    fi
     cd "$GKI_ROOT/KernelSU"
     git stash && echo "[-] Stashed current changes."
     if [ "$(git status | grep -Po 'v\d+(\.\d+)*' | head -n1)" ]; then
-        git checkout main && echo "[-] Switched to main branch."
+        default_branch=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')
+        git checkout "${default_branch:-master}" && echo "[-] Switched to ${default_branch:-master} branch."
     fi
     git pull && echo "[+] Repository updated."
     if [ -z "${1-}" ]; then
-        git checkout "$(git describe --abbrev=0 --tags)" && echo "[-] Checked out latest tag."
+        latest_tag=$(git describe --abbrev=0 --tags 2>/dev/null || true)
+        if [ -n "$latest_tag" ]; then
+            git checkout "$latest_tag" && echo "[-] Checked out latest tag: $latest_tag."
+        else
+            echo "[-] No tags found; keeping current branch."
+        fi
     else
         git checkout "$1" && echo "[-] Checked out $1." || echo "[-] Checkout default branch"
     fi
