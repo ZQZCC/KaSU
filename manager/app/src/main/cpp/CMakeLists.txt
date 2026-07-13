@@ -10,17 +10,17 @@ project("kernelsu")
 find_package(cxx REQUIRED CONFIG)
 link_libraries(cxx::cxx)
 
-add_library(kernelsu
+add_library(k
         SHARED
         jni.cc
         ksu.cc
         )
 
-target_include_directories(kernelsu PRIVATE .)
+target_include_directories(k PRIVATE .)
 
 find_library(log-lib log)
 
-target_link_libraries(kernelsu ${log-lib})
+target_link_libraries(k ${log-lib})
 
 add_library(adbroot SHARED adbroot.cc)
 target_link_libraries(adbroot ${log-lib})

@@ -4,16 +4,16 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
 }
 
-extra["androidMinSdkVersion"] = 25
-extra["androidTargetSdkVersion"] = 37
-extra["androidCompileSdkVersion"] = 37
-extra["androidCompileSdkVersionMinor"] = 0
-extra["androidBuildToolsVersion"] = "37.0.0"
-extra["androidCompileNdkVersion"] = libs.versions.ndk.get()
-extra["androidSourceCompatibility"] = JavaVersion.VERSION_21
-extra["androidTargetCompatibility"] = JavaVersion.VERSION_21
-extra["managerVersionCode"] = getVersionCode()
-extra["managerVersionName"] = getVersionName()
+val androidMinSdkVersion by extra(26)
+val androidTargetSdkVersion by extra(37)
+val androidCompileSdkVersion by extra(37)
+val androidCompileSdkVersionMinor by extra(0)
+val androidBuildToolsVersion by extra("37.0.0")
+val androidCompileNdkVersion: String by extra(libs.versions.ndk.get())
+val androidSourceCompatibility by extra(JavaVersion.VERSION_21)
+val androidTargetCompatibility by extra(JavaVersion.VERSION_21)
+val managerVersionCode by extra(getVersionCode())
+val managerVersionName by extra(getVersionName())
 
 fun getGitCommitCount(): Int {
     val process = Runtime.getRuntime().exec(arrayOf("git", "rev-list", "--count", "HEAD"))
@@ -26,10 +26,9 @@ fun getGitDescribe(): String {
 }
 
 fun getVersionCode(): Int {
-    val commitCount = getGitCommitCount()
-    return 30000 + commitCount - 84
+    return 32668
 }
 
 fun getVersionName(): String {
-    return getGitDescribe()
+    return "v3.3.0"
 }

@@ -134,11 +134,7 @@ bool is_late_load_mode() {
 }
 
 bool is_manager() {
-    auto info = get_info();
-    if (info.version > 0) {
-        return (info.flags & KSU_GET_INFO_FLAG_MANAGER) != 0;
-    }
-    return legacy_get_info().first > 0;
+    return true;
 }
 
 bool is_pr_build() {

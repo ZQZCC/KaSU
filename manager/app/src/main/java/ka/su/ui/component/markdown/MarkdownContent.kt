@@ -1,0 +1,68 @@
+package ka.su.ui.component.markdown
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun MarkdownContent(
+    content: String,
+    isMarkdown: Boolean,
+) {
+    var loaded by remember(content, isMarkdown) { mutableStateOf(false) }
+    val alpha by animateFloatAsState(
+        targetValue = if (loaded) 1f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "MarkdownContentAlpha",
+    )
+    val placeholderAlpha by animateFloatAsState(
+        targetValue = if (loaded) 0f else 1f,
+        animationSpec = tween(durationMillis = 150),
+        label = "MarkdownContentPlaceholderAlpha",
+    )
+    val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .graphicsLayer { this.alpha = alpha }
+        ) {
+            GithubMarkdown(
+                content = content,
+                isMarkdown = isMarkdown,
+                onLoadingChange = { loaded = !it },
+                containerColor = containerColor,
+                wrapCodeBlocks = true,
+            )
+        }
+        if (placeholderAlpha > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp)
+                    .graphicsLayer { this.alpha = placeholderAlpha },
+                contentAlignment = Alignment.Center,
+            ) {
+                LoadingIndicator()
+            }
+        }
+    }
+}

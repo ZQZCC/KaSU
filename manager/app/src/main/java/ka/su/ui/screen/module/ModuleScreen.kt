@@ -1,0 +1,180 @@
+package ka.su.ui.screen.module
+
+import android.Manifest
+import android.content.Intent
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.unit.Dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
+import ka.su.R
+import ka.su.ui.component.SearchStatus
+import ka.su.ui.navigation3.LocalNavigator
+import ka.su.ui.navigation3.Route
+import ka.su.ui.screen.flash.FlashIt
+import ka.su.ui.util.download
+import ka.su.ui.util.module.Shortcut
+import ka.su.ui.viewmodel.ModuleViewModel
+import ka.su.ui.webui.WebUIActivity
+
+@Composable
+fun ModulePager(
+    bottomInnerPadding: Dp,
+    isCurrentPage: Boolean = true,
+) {
+    val navigator = LocalNavigator.current
+    val context = LocalContext.current
+    val resource = LocalResources.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val viewModel = viewModel<ModuleViewModel>()
+    val scope = rememberCoroutineScope()
+    val rawUiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val webUILauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { viewModel.fetchModuleList(resort = false) }
+
+    // Request notification permission for download progress notifications
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { /* Download works regardless of result */ }
+    val latestIsCurrentPage by rememberUpdatedState(isCurrentPage)
+    val initialResumeHandled = rememberSaveable { mutableStateOf(false) }
+
+    var hasActivated by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(isCurrentPage) {
+        if (isCurrentPage) {
+            if (!hasActivated) {
+                hasActivated = true
+                viewModel.refreshEnvironmentState()
+                viewModel.initializePreferences()
+                val state = viewModel.uiState.value
+                if (!state.hasLoaded && !state.isRefreshing) {
+                    viewModel.fetchModuleList()
+                }
+                if (Build.VERSION.SDK_INT >= 33) {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        } else if (!rawUiState.searchStatus.isCollapsed()) {
+            viewModel.updateSearchStatus(rawUiState.searchStatus.copy(searchText = "", current = SearchStatus.Status.COLLAPSED))
+        }
+    }
+
+    LifecycleResumeEffect(Unit) {
+        if (initialResumeHandled.value && latestIsCurrentPage) {
+            val state = viewModel.uiState.value
+            if (!state.isRefreshing) {
+                viewModel.fetchModuleList(
+                    checkUpdate = !state.hasLoaded || viewModel.isNeedRefresh,
+                    resort = !state.hasLoaded,
+                )
+            }
+        }
+        initialResumeHandled.value = true
+        onPauseOrDispose {}
+    }
+
+    val actions = ModuleActions(
+        onRefresh = {
+            viewModel.fetchModuleList(checkUpdate = true)
+        },
+        onSearchStatusChange = {
+            viewModel.updateSearchStatus(it)
+        },
+        onSearchTextChange = { text ->
+            viewModel.updateSearchText(text)
+        },
+        onClearSearch = {
+            viewModel.updateSearchText("")
+        },
+        onRequestUpdateConfirmation = { module, updateInfo ->
+            viewModel.requestUpdateConfirmation(module, updateInfo)
+        },
+        onRequestUninstallConfirmation = { module ->
+            viewModel.requestUninstallConfirmation(module)
+        },
+        onDismissConfirmRequest = {
+            viewModel.dismissConfirmRequest()
+        },
+        onConfirmUpdate = { request ->
+            scope.launch {
+                download(
+                    url = request.downloadUrl,
+                    fileName = request.fileName,
+                    onDownloaded = { uri ->
+                        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                            navigator.push(Route.Flash(FlashIt.FlashModules(listOf(uri))))
+                            viewModel.markNeedRefresh()
+                        }
+                    },
+                    onDownloading = {
+                        viewModel.emitEffect(
+                            ModuleEffect.Toast(
+                                resource.getString(R.string.module_downloading).format(request.module.name)
+                            )
+                        )
+                    },
+                )
+            }
+            viewModel.dismissConfirmRequest()
+        },
+        onToggleSortActionFirst = {
+            viewModel.toggleSortActionFirst()
+        },
+        onToggleSortEnabledFirst = {
+            viewModel.toggleSortEnabledFirst()
+        },
+        onOpenWebUi = { module ->
+            webUILauncher.launch(
+                Intent(context, WebUIActivity::class.java)
+                    .setData(
+                        Shortcut.buildShortcutUri(module.id, ShortcutType.WebUI)
+                    )
+            )
+        },
+        onToggleModule = { module ->
+            viewModel.toggleModule(module)
+        },
+        onUninstallModule = { module ->
+            viewModel.uninstallModule(module)
+        },
+        onUndoUninstallModule = { module ->
+            viewModel.undoUninstallModule(module)
+        },
+        onOpenFlash = { uris ->
+            if (uris.isNotEmpty()) {
+                navigator.push(Route.Flash(FlashIt.FlashModules(uris)))
+                viewModel.markNeedRefresh()
+            }
+        },
+        onExecuteModuleAction = { module ->
+            navigator.push(Route.ExecuteModuleAction(module.id))
+            viewModel.markNeedRefresh()
+        },
+    )
+
+    ModulePagerMaterial(
+        uiState = rawUiState,
+        confirmDialogState = rawUiState.confirmDialogState,
+        moduleEvent = viewModel.moduleEvent,
+        actions = actions,
+        bottomInnerPadding = bottomInnerPadding,
+    )
+}
