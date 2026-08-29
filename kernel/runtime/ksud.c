@@ -52,6 +52,9 @@ void on_post_fs_data(void)
 	pr_info("on_post_fs_data!\n");
 
 	ksu_load_allow_list();
+#ifdef CONFIG_KSU_TINYFS_SUCOMPAT
+	ksu_tinyfs_sucompat_init();
+#endif
 	// sanity check, this may influence the performance
 	stop_input_hook();
 }

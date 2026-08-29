@@ -51,6 +51,19 @@ config KSU_TAMPER_SYSCALL_TABLE
 	  complies with Clang CFI.
 	  Verified on 3.0 ~ 7.1. Recommended for 3.0 ~ 4.14.
 
+config KSU_TINYFS_SUCOMPAT
+	bool "TinyFS sucompat for fixed ARM64 6.1 kernels"
+	depends on KSU = y
+	depends on ARM64
+	depends on !KSU_TAMPER_SYSCALL_TABLE
+	depends on !KSU_HACK_ARM64_BRANCH_LINK
+	depends on !KSU_FEATURE_ADBROOT
+	default n
+	help
+	  Expose a synthetic /system/bin/su entry backed by a tiny ARM64
+	  launcher. This targets fixed ARM64 6.1 built-in kernels and is not a
+	  generic LKM compatibility layer.
+
 config KSU_LSM_SECURITY_HOOKS
 	bool "Use LSM security hooks"
 	depends on KSU

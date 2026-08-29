@@ -80,6 +80,52 @@ static noinline bool __ksu_is_allow_uid_copy(uid_t uid)
 	return __ksu_is_allow_uid(uid);
 }
 
+static __always_inline bool ksu_sucompat_current_allowed(void)
+{
+	// put ret hot on insn pipeline
+	if (likely(ksu_is_seccomp_enabled()))
+		return false;
+
+	// pass through tagged task from setuid hook
+	if (test_thread_flag(TIF_KSU_MANAGED))
+		return true;
+
+	// see seccomp check above
+	// so if its root but not ksu domain, deny, see __ksu_is_allow_uid_for_current
+	// actually, we can likely skip this step?
+	uid_t uid = current_uid().val;
+	if (!!uid)
+		goto uid_check;
+
+	return is_ksu_domain();
+
+uid_check:
+#if defined(CONFIG_KSU_ENABLE_FULL_UID_CHECKS)
+	return __ksu_is_allow_uid(uid);
+#elif defined(CONFIG_KSU_SHELL_HAS_SU_ALWAYS)
+	/**
+	 * If shell always has su and full UID checks are disabled,
+	 * no additional UID check is needed here.
+	 */
+	return true;
+#else /* default behavior */
+	/**
+	 * NOTE: shell has its seccomp disabled, so we only need
+	 * to check for this thing. short-circuit if not shell! 
+	 * as we allow apps on setuid lsm by disabling seccomp
+	 *
+	 */
+	if (likely(uid != 2000))
+		return true;
+
+	/**
+	 * use our noinline copy. only shell falls through this. nbd that
+	 * it opens up a stack frame .having small code around here is worth
+	 */
+	return __ksu_is_allow_uid_copy(uid);
+#endif /* default behavior */
+}
+
 static __always_inline bool is_su_allowed(const void **ptr_to_check)
 {
 #ifndef CONFIG_KSU_TAMPER_SYSCALL_TABLE
@@ -93,54 +139,14 @@ static __always_inline bool is_su_allowed(const void **ptr_to_check)
 #endif // KSU_CAN_USE_JUMP_LABEL
 #endif
 
-	// put ret hot on insn pipeline
-	if (likely(ksu_is_seccomp_enabled()))
+#ifdef CONFIG_KSU_TINYFS_SUCOMPAT
+	if (ksu_tinyfs_sucompat_ready())
+		return false;
+#endif
+
+	if (!ksu_sucompat_current_allowed())
 		return false;
 
-	// pass through tagged task from setuid hook
-	if (test_thread_flag(TIF_KSU_MANAGED))
-		goto check_ptr;
-
-	// see seccomp check above
-	// so if its root but not ksu domain, deny, see __ksu_is_allow_uid_for_current
-	// actually, we can likely skip this step?
-	uid_t uid = current_uid().val;
-	if (!!uid)
-		goto uid_check;
-
-	if (!is_ksu_domain())
-		return false;
-	goto check_ptr;
-
-uid_check:
-#if defined(CONFIG_KSU_ENABLE_FULL_UID_CHECKS)
-	if (!__ksu_is_allow_uid(uid))
-		return false;
-#elif defined(CONFIG_KSU_SHELL_HAS_SU_ALWAYS)
-	/**
-	 * NOTE: if shell always has su anyway, and full uid checks are disabled, 
-	 * we can skip all these checks. this goto is for explicitness / code styel
-	 */
-	 goto check_ptr;
-	 __builtin_unreachable();
-#else /* default behavior */
-	/**
-	 * NOTE: shell has its seccomp disabled, so we only need
-	 * to check for this thing. short-circuit if not shell! 
-	 * as we allow apps on setuid lsm by disabling seccomp
-	 *
-	 */
-	if (likely(uid != 2000))
-		goto check_ptr;
-
-	/**
-	 * use our noinline copy. only shell falls through this. nbd that
-	 * it opens up a stack frame .having small code around here is worth
-	 */
-	if (!__ksu_is_allow_uid_copy(uid))
-		return false;
-#endif /* default behavior */
-check_ptr:
 	// first check the pointer-to-pointer
 	if (unlikely(!ptr_to_check))
 		return false;
@@ -393,12 +399,17 @@ static void syscall_table_sucompat_disable();
 
 static void ksu_sucompat_enable()
 {
-
+#ifdef CONFIG_KSU_TINYFS_SUCOMPAT
+	if (!ksu_tinyfs_sucompat_ready()) {
+#endif
 	ksu_sucompat_enable_branch();
 	syscall_table_sucompat_enable();
+#ifdef CONFIG_KSU_TINYFS_SUCOMPAT
+	}
+#endif
 
 	ksu_su_compat_enabled = true;
-	pr_info("%s: hooks enabled: exec, faccessat, stat\n", __func__);
+	pr_info("%s: sucompat enabled\n", __func__);
 }
 
 static void ksu_sucompat_disable()
@@ -408,7 +419,7 @@ static void ksu_sucompat_disable()
 	syscall_table_sucompat_disable();
 
 	ksu_su_compat_enabled = false;
-	pr_info("%s: hooks disabled: exec, faccessat, stat\n", __func__);
+	pr_info("%s: sucompat disabled\n", __func__);
 }
 
 static int su_compat_feature_get(u64 *value)

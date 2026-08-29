@@ -62,6 +62,7 @@
 #include "feature/selinux_hide.h"
 #include "feature/sucompat.h"
 #include "feature/sulog.h"
+#include "hook/tinyfs_sucompat.h"
 #include "runtime/ksud.h"
 #include "sulog/event.h"
 #include "sulog/fd.h"
@@ -111,6 +112,9 @@
 #include "feature/kernel_umount.c"
 #include "feature/selinux_hide.c"
 #include "feature/sucompat.c"
+#ifdef CONFIG_KSU_TINYFS_SUCOMPAT
+#include "hook/tinyfs_sucompat.c"
+#endif
 #include "feature/sulog.c"
 #include "runtime/ksud.c"
 
@@ -197,8 +201,12 @@
 #else
 	#define FEAT_8 ""
 #endif
-
-#define EXTRA_FEATURES FEAT_1 FEAT_2 FEAT_3 FEAT_4 FEAT_5 FEAT_6 FEAT_7 FEAT_8
+#if defined(CONFIG_KSU_TINYFS_SUCOMPAT)
+	#define FEAT_9 " +tinyfs_sucompat"
+#else
+	#define FEAT_9 ""
+#endif
+#define EXTRA_FEATURES FEAT_1 FEAT_2 FEAT_3 FEAT_4 FEAT_5 FEAT_6 FEAT_7 FEAT_8 FEAT_9
 
 static inline void ksu_print_build_info(void)
 {
