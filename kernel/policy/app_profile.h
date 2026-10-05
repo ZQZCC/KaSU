@@ -16,6 +16,10 @@
 // Escalate current process to root with the appropriate profile
 int escape_with_root_profile(void);
 
+struct root_profile;
+// Consumes the selected root profile reference, including on failure.
+int escape_with_root_profile_ref(struct root_profile *profile);
+
 void escape_to_root_forced(void);
 
 void __init ksu_app_profile_init(void);

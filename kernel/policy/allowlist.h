@@ -39,6 +39,8 @@ int ksu_set_app_profile(struct app_profile *);
 
 bool ksu_uid_should_umount(uid_t uid);
 struct root_profile *ksu_get_root_profile(uid_t uid);
+// Authorize the current UID and acquire its selected root profile in one lookup.
+struct root_profile *ksu_get_allowed_root_profile(uid_t uid);
 // only used to put the root_profile returned by ksu_get_root_profile
 void ksu_put_root_profile(struct root_profile *);
 

@@ -17,9 +17,3 @@ bool always_allow(void)
 {
 	return true;
 }
-
-bool allowed_for_su(void)
-{
-	return is_manager() || ksu_is_allow_uid_for_current(current_uid().val);
-
-}
