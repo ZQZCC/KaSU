@@ -3,13 +3,17 @@ static int do_grant_root(void __user *arg)
 	int ret;
 	__u32 audit_uid = current_uid().val;
 	__u32 audit_euid = current_euid().val;
+	struct root_profile *profile = ksu_get_allowed_root_profile(audit_uid);
 
-	// we already check uid above on allowed_for_su()
+	if (!profile) {
+		pr_warn("ksu ioctl: permission denied for cmd=0x%x uid=%d\n", KSU_IOCTL_GRANT_ROOT, audit_uid);
+		return -EPERM;
+	}
 
 	write_sulog('i'); // log ioctl escalation
 
 	pr_info("allow root for: %d\n", audit_uid);
-	ret = escape_with_root_profile();
+	ret = escape_with_root_profile_ref(profile);
 
 #ifdef CONFIG_KSU_FEATURE_SULOG
 	ksu_sulog_emit_grant_root(ret, audit_uid, audit_euid, GFP_KERNEL);
@@ -703,7 +707,8 @@ static int do_disable_escape_to_root(void __user *arg)
 
 // IOCTL handlers mapping table
 static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
-	{ .cmd = KSU_IOCTL_GRANT_ROOT, .name = "GRANT_ROOT", .handler = do_grant_root, .perm_check = allowed_for_su },
+	// GRANT_ROOT checks permission while acquiring the selected profile.
+	{ .cmd = KSU_IOCTL_GRANT_ROOT, .name = "GRANT_ROOT", .handler = do_grant_root },
 	{ .cmd = KSU_IOCTL_GET_INFO, .name = "GET_INFO", .handler = do_get_info, .perm_check = always_allow },
 	{ .cmd = KSU_IOCTL_GET_INFO_LEGACY, .name = "GET_INFO_LEGACY", .handler = do_get_info_legacy, .perm_check = always_allow },
 	{ .cmd = KSU_IOCTL_REPORT_EVENT, .name = "REPORT_EVENT", .handler = do_report_event, .perm_check = only_root },
