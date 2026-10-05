@@ -288,13 +288,25 @@ void ksu_put_app_profile(struct app_profile *profile)
 	put_perm_data(p);
 }
 
-struct root_profile *ksu_get_root_profile(uid_t uid)
+static struct root_profile *get_root_profile(uid_t uid, bool check_allowed)
 {
 	struct perm_data *p = NULL;
 	struct root_profile *res;
+	bool manager = is_uid_manager(uid);
+	bool allow_default = !check_allowed;
+
+	if (check_allowed && !manager) {
+		if (uid == 0) {
+			if (!is_ksu_domain())
+				return NULL;
+			allow_default = true;
+		} else if (forbid_system_uid(uid)) {
+			return NULL;
+		}
+	}
 
 	rcu_read_lock();
-	if (is_uid_manager(uid)) {
+	if (manager) {
 		goto use_default;
 	}
 
@@ -311,18 +323,30 @@ retry:
 					goto retry;
 				}
 				res = &p->profile.rp_config.profile;
+			} else {
+				res = &default_root_profile;
 			}
 			break;
 		}
 	}
 
-	if (unlikely(!res)) {
+	if (unlikely(!res) && allow_default) {
 	use_default:
 		res = &default_root_profile;
 	}
 
 	rcu_read_unlock();
 	return res;
+}
+
+struct root_profile *ksu_get_root_profile(uid_t uid)
+{
+	return get_root_profile(uid, false);
+}
+
+struct root_profile *ksu_get_allowed_root_profile(uid_t uid)
+{
+	return get_root_profile(uid, true);
 }
 
 void ksu_put_root_profile(struct root_profile *profile)
