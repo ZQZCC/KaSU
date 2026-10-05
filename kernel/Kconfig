@@ -64,6 +64,19 @@ config KSU_TINYFS_SUCOMPAT
 	  launcher. This targets fixed ARM64 6.1 built-in kernels and is not a
 	  generic LKM compatibility layer.
 
+config KSU_TINYFS_NO_SETUID
+	bool "Use TinyFS without setuid or module-unmount hooks"
+	depends on KSU_TINYFS_SUCOMPAT
+	depends on !KSU_LSM_SECURITY_HOOKS
+	depends on !KSU_HOSTSREDIRECT
+	default n
+	help
+	  For fixed TinyFS/NoMount kernels with manual security hooks only.
+	  Obtain control FDs on demand and clear seccomp only when granting root.
+	  NoMount must provide module visibility rules; KernelSU's module-unmount
+	  policy is unavailable. There is no traditional sucompat fallback if
+	  TinyFS initialization fails. Keep disabled for other configurations.
+
 config KSU_LSM_SECURITY_HOOKS
 	bool "Use LSM security hooks"
 	depends on KSU

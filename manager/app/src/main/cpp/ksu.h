@@ -47,6 +47,7 @@ bool is_su_enabled();
 bool set_kernel_umount_enabled(bool enabled);
 
 bool is_kernel_umount_enabled();
+bool is_kernel_umount_supported();
 
 // SELinux hide
 int set_selinux_hide_enabled(bool enabled);
