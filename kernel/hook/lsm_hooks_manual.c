@@ -11,12 +11,14 @@
  *
  */
 
+#ifndef CONFIG_KSU_TINYFS_PKG_OBSERVER
 int ksu_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
 			    struct inode *new_inode, struct dentry *new_dentry)
 {
 	ksu_rename_observer(old_dentry, new_dentry);
 	return 0;
 }
+#endif
 
 #ifndef CONFIG_KSU_TINYFS_NO_SETUID
 int ksu_task_fix_setuid(struct cred *new, const struct cred *old, int flags)
