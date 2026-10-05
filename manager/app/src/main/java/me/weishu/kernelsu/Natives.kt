@@ -83,6 +83,7 @@ object Natives {
      *  negative : error
      */
     external fun isKernelUmountEnabled(): Boolean
+    external fun isKernelUmountSupported(): Boolean
     external fun setKernelUmountEnabled(enabled: Boolean): Boolean
 
     /**

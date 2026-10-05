@@ -232,6 +232,11 @@ bool is_kernel_umount_enabled() {
     return value != 0;
 }
 
+bool is_kernel_umount_supported() {
+    bool supported = false;
+    return get_feature(KSU_FEATURE_KERNEL_UMOUNT, nullptr, &supported) && supported;
+}
+
 int set_selinux_hide_enabled(bool enabled) {
     if (!set_feature(KSU_FEATURE_SELINUX_HIDE, enabled ? 1 : 0)) {
         return -errno;

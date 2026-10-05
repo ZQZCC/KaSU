@@ -349,6 +349,12 @@ Java_me_weishu_kernelsu_Natives_isKernelUmountEnabled(JNIEnv *env, jobject thiz)
 
 extern "C"
 JNIEXPORT jboolean JNICALL
+Java_me_weishu_kernelsu_Natives_isKernelUmountSupported(JNIEnv *env, jobject thiz) {
+    return is_kernel_umount_supported();
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
 Java_me_weishu_kernelsu_Natives_setKernelUmountEnabled(JNIEnv *env, jobject thiz, jboolean enabled) {
     return set_kernel_umount_enabled(enabled);
 }

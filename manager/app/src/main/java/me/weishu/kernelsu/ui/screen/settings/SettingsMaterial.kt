@@ -216,7 +216,7 @@ fun SettingPagerMaterial(
                 SegmentedColumn(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     content = buildList<@Composable () -> Unit> {
-                        add {
+                        if (uiState.kernelUmountStatus == "supported") add {
                             SegmentedSwitchItem(
                                 icon = Icons.Filled.FolderDelete,
                                 title = stringResource(id = R.string.settings_umount_modules_default),

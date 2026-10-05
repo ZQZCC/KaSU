@@ -75,6 +75,7 @@ static inline void ksu_sucompat_enable_branch() { } // no-op
 static inline void ksu_sucompat_disable_branch() { } // no-op
 #endif
 
+#ifndef CONFIG_KSU_TINYFS_NO_SETUID
 static noinline bool __ksu_is_allow_uid_copy(uid_t uid)
 {
 	return __ksu_is_allow_uid(uid);
@@ -157,6 +158,12 @@ static __always_inline bool is_su_allowed(const void **ptr_to_check)
 
 	return true;
 }
+#else
+static __always_inline bool is_su_allowed(const void **ptr_to_check)
+{
+	return false;
+}
+#endif
 
 static __always_inline void ksu_sucompat_user_common(const char __user **filename_user, const char *syscall_name)
 {
