@@ -52,6 +52,9 @@ void on_post_fs_data(void)
 	pr_info("on_post_fs_data!\n");
 
 	ksu_load_allow_list();
+#ifdef CONFIG_KSU_TINYFS_PKG_OBSERVER
+	ksu_pkg_observer_init();
+#endif
 #ifdef CONFIG_KSU_TINYFS_SUCOMPAT
 	ksu_tinyfs_sucompat_init();
 #endif
@@ -92,7 +95,12 @@ void on_boot_completed(void)
 {
 	ksu_boot_completed = true;
 	pr_info("on_boot_completed!\n");
+#ifdef CONFIG_KSU_TINYFS_PKG_OBSERVER
+	ksu_pkg_observer_init();
+	track_throne(false);
+#else
 	track_throne(true);
+#endif
 
 #ifdef CONFIG_KSU_HOSTSREDIRECT
 	ksu_hostsredirect_init();
