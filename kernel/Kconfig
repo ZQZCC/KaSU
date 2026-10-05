@@ -77,6 +77,19 @@ config KSU_TINYFS_NO_SETUID
 	  policy is unavailable. There is no traditional sucompat fallback if
 	  TinyFS initialization fails. Keep disabled for other configurations.
 
+config KSU_TINYFS_PKG_OBSERVER
+	bool "Observe package updates only in /data/system"
+	depends on KSU_TINYFS_NO_SETUID
+	depends on KSU_THRONE_TRACKER_ALWAYS_THREADED
+	default n
+	help
+	  For fixed built-in Linux 6.1 TinyFS/NoMount kernels only. Replace the
+	  global manual rename observer with /data/system's inode rename callback.
+	  This observes successful same-directory packages.list replacements.
+	  The directory must remain in place for the lifetime of the kernel;
+	  cross-directory imports and replacing or overlaying /data/system are
+	  not supported. Initialization is retried at boot completion.
+
 config KSU_LSM_SECURITY_HOOKS
 	bool "Use LSM security hooks"
 	depends on KSU

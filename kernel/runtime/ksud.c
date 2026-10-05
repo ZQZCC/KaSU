@@ -52,6 +52,9 @@ void on_post_fs_data(void)
 	pr_info("on_post_fs_data!\n");
 
 	ksu_load_allow_list();
+#ifdef CONFIG_KSU_TINYFS_PKG_OBSERVER
+	ksu_pkg_observer_init();
+#endif
 #ifdef CONFIG_KSU_TINYFS_SUCOMPAT
 	ksu_tinyfs_sucompat_init();
 #endif
@@ -92,7 +95,12 @@ void on_boot_completed(void)
 {
 	ksu_boot_completed = true;
 	pr_info("on_boot_completed!\n");
+#ifdef CONFIG_KSU_TINYFS_PKG_OBSERVER
+	ksu_pkg_observer_init();
+	track_throne(false);
+#else
 	track_throne(true);
+#endif
 
 #ifdef CONFIG_KSU_HOSTSREDIRECT
 	ksu_hostsredirect_init();
@@ -396,6 +404,10 @@ static noinline void ksu_install_rc_hook(struct file *file)
 	ksu_grab_init_session_keyring();
 #ifdef CONFIG_KSU_TINYFS_SUCOMPAT
 	ksu_tinyfs_control_init();
+#endif
+#ifdef CONFIG_KSU_TINYFS_PKG_OBSERVER
+	/* Manager recovery must not depend on ksud's UAPI check. */
+	track_throne(false);
 #endif
 
 	// now we can sure that the init process is reading
