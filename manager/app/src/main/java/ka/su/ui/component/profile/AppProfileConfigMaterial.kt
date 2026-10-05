@@ -36,6 +36,8 @@ fun AppProfileConfigMaterial(
             )
         }
 
+        if (!Natives.isKernelUmountSupported()) return@Column
+
         SegmentedColumn(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             content = listOf {

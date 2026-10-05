@@ -18,6 +18,7 @@ int ksu_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
 	return 0;
 }
 
+#ifndef CONFIG_KSU_TINYFS_NO_SETUID
 int ksu_task_fix_setuid(struct cred *new, const struct cred *old, int flags)
 {
 	// see sys_setresuid
@@ -26,6 +27,7 @@ int ksu_task_fix_setuid(struct cred *new, const struct cred *old, int flags)
 
 	return 0;
 }
+#endif
 
 int ksu_bprm_check(struct linux_binprm *bprm)
 {

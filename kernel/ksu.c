@@ -109,7 +109,9 @@
 #include "infra/event_queue.c"
 
 #include "feature/adb_root.c"
+#ifndef CONFIG_KSU_TINYFS_NO_SETUID
 #include "feature/kernel_umount.c"
+#endif
 #include "feature/selinux_hide.c"
 #include "feature/sucompat.c"
 #ifdef CONFIG_KSU_TINYFS_SUCOMPAT
@@ -121,7 +123,9 @@
 #include "sulog/event.c"
 #include "sulog/fd.c"
 
+#ifndef CONFIG_KSU_TINYFS_NO_SETUID
 #include "hook/setuid_hook.c"
+#endif
 
 #ifdef CONFIG_KSU_LSM_SECURITY_HOOKS
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
@@ -251,7 +255,9 @@ static int __init kernelsu_init(void)
 
 	ksu_sucompat_init(); // so the feature is registered
 
+#ifndef CONFIG_KSU_TINYFS_NO_SETUID
 	ksu_kernel_umount_init(); // so the feature is registered
+#endif
 
 	ksu_selinux_hide_init(); // so the feature is registered
 
