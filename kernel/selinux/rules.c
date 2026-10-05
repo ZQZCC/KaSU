@@ -84,6 +84,9 @@ static int apply_kernelsu_rules_fn(void *ptr)
 
 	// allow us do any ioctl
 	if (db->policyvers >= POLICYDB_VERSION_XPERMS_IOCTL) {
+#ifdef CONFIG_KSU_TINYFS_SUCOMPAT
+		ksu_allowxperm(db, "domain", KERNEL_SU_FILE, "file", "0x4bf0-0x4bf1");
+#endif
 		ksu_allowxperm(db, KERNEL_SU_DOMAIN, ALL, "blk_file", ALL);
 		ksu_allowxperm(db, KERNEL_SU_DOMAIN, ALL, "fifo_file", ALL);
 		ksu_allowxperm(db, KERNEL_SU_DOMAIN, ALL, "chr_file", ALL);

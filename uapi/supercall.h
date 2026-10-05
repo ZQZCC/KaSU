@@ -16,6 +16,8 @@ static const __u32 KERNEL_SU_UAPI_VERSION = 5;
 static const __u32 KSU_INSTALL_MAGIC1 = 0xDEADBEEF;
 static const __u32 KSU_INSTALL_MAGIC2 = 0xCAFEBABE;
 
+#define KSU_TINYFS_CONTROL_PATH "/system/bin/.ksu"
+
 struct ksu_become_daemon_cmd {
     __u8 token[65]; /* Input: daemon token (null-terminated) */
 };
@@ -181,5 +183,9 @@ static const __u32 KSU_IOCTL_ADD_TRY_UMOUNT = _IOC(_IOC_WRITE, 'K', 18, 0);
 static const __u32 KSU_IOCTL_SET_INIT_PGRP = _IO('K', 19);
 static const __u32 KSU_IOCTL_GET_SULOG_FD = _IOW('K', 20, struct ksu_get_sulog_fd_cmd);
 static const __u32 KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT = _IO('K', 21);
+
+/* TinyFS inode bootstrap; returns a new fd, not a driver command. */
+static const __u32 KSU_IOCTL_TINYFS_GET_SU_FD = _IO('K', 0xf0);
+static const __u32 KSU_IOCTL_TINYFS_GET_DRIVER_FD = _IO('K', 0xf1);
 
 #endif
