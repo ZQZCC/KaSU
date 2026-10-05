@@ -11,6 +11,8 @@
 #define KSU_INSTALL_MAGIC1 0xDEADBEEF
 #define KSU_INSTALL_MAGIC2 0xCAFEBABE
 
+#define KSU_TINYFS_CONTROL_PATH "/system/bin/.ksu"
+
 struct ksu_become_daemon_cmd {
 	__u8 token[65]; /* Input: daemon token (null-terminated) */
 };
@@ -176,5 +178,9 @@ struct ksu_get_sulog_fd_cmd {
 #define KSU_IOCTL_SET_INIT_PGRP			_IO('K', 19)
 #define KSU_IOCTL_GET_SULOG_FD			_IOW('K', 20, struct ksu_get_sulog_fd_cmd)
 #define KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT	_IO('K', 21)
+
+/* TinyFS inode bootstrap; returns a new fd, not a driver command. */
+#define KSU_IOCTL_TINYFS_GET_SU_FD		_IO('K', 0xf0)
+#define KSU_IOCTL_TINYFS_GET_DRIVER_FD	_IO('K', 0xf1)
 
 #endif

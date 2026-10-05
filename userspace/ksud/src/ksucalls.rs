@@ -121,6 +121,20 @@ pub fn claim_inherited_driver_fd() -> io::Result<()> {
 fn init_driver_fd() -> Option<RawFd> {
     let fd = scan_driver_fd().ok().flatten();
     if fd.is_none() {
+        let request = libc::c_int::try_from(ksu_uapi::KSU_IOCTL_TINYFS_GET_DRIVER_FD).ok()?;
+        let control = unsafe {
+            libc::open(
+                ksu_uapi::KSU_TINYFS_CONTROL_PATH.as_ptr().cast(),
+                libc::O_RDONLY | libc::O_CLOEXEC,
+            )
+        };
+        if control >= 0 {
+            let driver = unsafe { libc::ioctl(control, request, 0) };
+            unsafe { libc::close(control) };
+            if driver >= 0 {
+                return Some(driver);
+            }
+        }
         let mut fd = -1;
         with_svc_call(|| unsafe {
             libc::syscall(

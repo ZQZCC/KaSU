@@ -16,9 +16,20 @@
 #include <climits>
 #include <sys/syscall.h>
 #include <cerrno>
+#include <fcntl.h>
 #include "ksu.h"
 
 static int fd = -1;
+
+static int open_tinyfs_driver_fd() {
+    int control = open(KSU_TINYFS_CONTROL_PATH, O_RDONLY | O_CLOEXEC);
+    if (control < 0) {
+        return -1;
+    }
+    int driver = ioctl(control, KSU_IOCTL_TINYFS_GET_DRIVER_FD, 0);
+    close(control);
+    return driver;
+}
 
 static inline int scan_driver_fd() {
     const char *kName = "[ksu_driver]";
@@ -68,6 +79,9 @@ static int ksuctl(unsigned long op, Args &&... args) {
 
     if (fd < 0) {
         fd = scan_driver_fd();
+        if (fd < 0) {
+            fd = open_tinyfs_driver_fd();
+        }
     }
 
     static_assert(sizeof...(Args) <= 1, "ioctl expects at most one extra argument");

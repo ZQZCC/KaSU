@@ -66,7 +66,7 @@ int ksu_install_fd(void)
 
 int ksu_install_su_fd(void)
 {
-	// This descriptor must be installed after the exec into ksud.
+	// Preserve this descriptor across the launcher exec into ksud.
 	return ksu_install_fd_with_permissions(0, KSU_DRIVER_PERMISSION_SU_SESSION);
 }
 

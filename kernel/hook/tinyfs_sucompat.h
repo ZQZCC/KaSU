@@ -4,6 +4,7 @@
 
 #ifdef CONFIG_KSU_TINYFS_SUCOMPAT
 bool ksu_tinyfs_sucompat_ready(void);
+void ksu_tinyfs_control_init(void);
 void ksu_tinyfs_sucompat_init(void);
 #endif
 
