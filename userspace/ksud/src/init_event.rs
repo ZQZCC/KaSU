@@ -14,6 +14,7 @@ pub fn on_post_fs_data() -> Result<()> {
         return Ok(());
     }
 
+    crate::policy::restore_before_post_fs_data()?;
     ksucalls::report_post_fs_data();
 
     utils::umask(0);

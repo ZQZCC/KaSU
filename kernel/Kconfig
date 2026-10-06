@@ -90,6 +90,16 @@ config KSU_TINYFS_PKG_OBSERVER
 	  cross-directory imports and replacing or overlaying /data/system are
 	  not supported. Initialization is retried at boot completion.
 
+config KSU_USERSPACE_POLICY
+	bool "Persist TinyFS app profiles in ksud"
+	depends on KSU_TINYFS_NO_SETUID
+	default n
+	help
+	  Experimental policy storage for fixed built-in TinyFS kernels.
+	  ksud restores profiles before post-fs-data and an init-managed service
+	  saves versioned snapshots on policy changes. Requires matching ksud.
+	  Manager authorization and the ordinary su path remain unchanged.
+
 config KSU_LSM_SECURITY_HOOKS
 	bool "Use LSM security hooks"
 	depends on KSU
