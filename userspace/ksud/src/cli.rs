@@ -39,6 +39,10 @@ enum Commands {
     #[command(hide = true)]
     Sulogd,
 
+    /// Persist TinyFS policies. Started and restarted by Android init.
+    #[command(hide = true)]
+    PolicyDaemon,
+
     /// Trigger `boot-complete` event
     BootCompleted,
 
@@ -668,6 +672,7 @@ pub fn run() -> Result<()> {
             Ok(())
         }
         Commands::Sulogd => sulog::run_sulogd(),
+        Commands::PolicyDaemon => crate::policy::run_daemon(),
         Commands::Profile { command } => match command {
             Profile::GetSepolicy { package } => crate::profile::get_sepolicy(package),
             Profile::SetSepolicy { package, policy } => {

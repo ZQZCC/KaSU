@@ -5,7 +5,7 @@ use crate::ksu_uapi;
 use std::cell::Cell;
 use std::fs;
 use std::io;
-use std::os::fd::RawFd;
+use std::os::fd::{FromRawFd, OwnedFd, RawFd};
 use std::sync::OnceLock;
 
 // sigsys handler
@@ -173,6 +173,22 @@ fn ksuctl<T>(request: u32, arg: *mut T) -> Result<i32> {
 }
 
 // API implementations
+pub fn open_policy_fd() -> io::Result<Option<OwnedFd>> {
+    let driver = *DRIVER_FD.get_or_init(|| init_driver_fd().unwrap_or(-1));
+    if driver < 0 {
+        return Err(io::Error::from_raw_os_error(libc::EBADF));
+    }
+    let fd = unsafe { libc::ioctl(driver, ksu_uapi::KSU_IOCTL_GET_POLICY_FD as libc::c_int, 0) };
+    if fd >= 0 {
+        return Ok(Some(unsafe { OwnedFd::from_raw_fd(fd) }));
+    }
+    let error = io::Error::last_os_error();
+    if matches!(error.raw_os_error(), Some(libc::ENOTTY | libc::EOPNOTSUPP)) {
+        return Ok(None);
+    }
+    Err(error)
+}
+
 pub fn get_info() -> ksu_uapi::ksu_get_info_cmd {
     *INFO_CACHE.get_or_init(|| {
         let mut cmd = ksu_uapi::ksu_get_info_cmd {

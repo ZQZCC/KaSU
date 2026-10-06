@@ -94,6 +94,9 @@
 
 // unity build
 #include "policy/allowlist.c"
+#ifdef CONFIG_KSU_USERSPACE_POLICY
+#include "policy/policy_store.c"
+#endif
 #include "policy/app_profile.c"
 #include "policy/feature.c"
 #include "manager/apk_sign.c"

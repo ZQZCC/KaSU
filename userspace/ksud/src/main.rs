@@ -40,6 +40,10 @@ mod module;
 #[cfg(target_os = "android")]
 mod module_config;
 #[cfg(target_os = "android")]
+mod policy;
+#[cfg(any(target_os = "android", test))]
+mod policy_file;
+#[cfg(target_os = "android")]
 mod profile;
 #[cfg(target_os = "android")]
 mod resetprop;
