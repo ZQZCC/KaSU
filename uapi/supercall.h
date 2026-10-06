@@ -10,7 +10,8 @@
 // 3: scoped su-session driver fd
 // 4: add KSU_GET_INFO_FLAG_BUNDLED
 // 5: add EVENT_SERVICES with a start/skip result
-static const __u32 KERNEL_SU_UAPI_VERSION = 5;
+// 6: optional TinyFS userspace policy storage
+static const __u32 KERNEL_SU_UAPI_VERSION = 6;
 
 /* Magic numbers for reboot hook to install fd */
 static const __u32 KSU_INSTALL_MAGIC1 = 0xDEADBEEF;
@@ -151,6 +152,23 @@ struct ksu_get_sulog_fd_cmd {
     __u32 flags; /* Input: reserved for future use, must be 0 */
 };
 
+/* These commands operate on the exclusive [ksu_policy] fd, not [ksu_driver]. */
+#define KSU_POLICY_INITIALIZED (1U << 0)
+#define KSU_POLICY_RESTORE_SAVED (1U << 0)
+
+struct ksu_policy_snapshot_cmd {
+    __aligned_u64 profiles; /* Input: app_profile array, or 0 for metadata */
+    __u64 generation; /* Output: snapshot generation */
+    __u32 count; /* Input: capacity; output: required/returned profile count */
+    __u32 flags; /* Output: KSU_POLICY_INITIALIZED */
+};
+
+struct ksu_policy_restore_cmd {
+    __aligned_u64 profiles; /* Input: fully migrated app_profile array */
+    __u32 count;
+    __u32 flags; /* KSU_POLICY_RESTORE_SAVED: already stored in v4 format */
+};
+
 static const __u8 KSU_UMOUNT_WIPE = 0; /* ignore everything and wipe list */
 static const __u8 KSU_UMOUNT_ADD = 1; /* add entry (path + flags) */
 static const __u8 KSU_UMOUNT_DEL = 2; /* delete entry, strcmp */
@@ -183,6 +201,11 @@ static const __u32 KSU_IOCTL_ADD_TRY_UMOUNT = _IOC(_IOC_WRITE, 'K', 18, 0);
 static const __u32 KSU_IOCTL_SET_INIT_PGRP = _IO('K', 19);
 static const __u32 KSU_IOCTL_GET_SULOG_FD = _IOW('K', 20, struct ksu_get_sulog_fd_cmd);
 static const __u32 KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT = _IO('K', 21);
+static const __u32 KSU_IOCTL_GET_POLICY_FD = _IO('K', 22);
+
+static const __u32 KSU_IOCTL_POLICY_SNAPSHOT = _IOWR('K', 0xe0, struct ksu_policy_snapshot_cmd);
+static const __u32 KSU_IOCTL_POLICY_RESTORE = _IOW('K', 0xe1, struct ksu_policy_restore_cmd);
+static const __u32 KSU_IOCTL_POLICY_ACK = _IOW('K', 0xe2, __u64);
 
 /* TinyFS inode bootstrap; returns a new fd, not a driver command. */
 static const __u32 KSU_IOCTL_TINYFS_GET_SU_FD = _IO('K', 0xf0);

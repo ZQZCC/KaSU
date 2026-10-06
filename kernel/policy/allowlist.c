@@ -1,5 +1,7 @@
+#ifndef CONFIG_KSU_USERSPACE_POLICY
 #define FILE_MAGIC 0x7f4b5355 // ' KSU', u32
 #define FILE_FORMAT_VERSION 4 // u32
+#endif
 
 #define KSU_APP_PROFILE_PRESERVE_UID 9999 // NOBODY_UID
 #define KSU_DEFAULT_SELINUX_DOMAIN "u:r:" KERNEL_SU_DOMAIN ":s0"
@@ -41,7 +43,9 @@ struct perm_data {
 static DEFINE_HASHTABLE(allow_list, ALLOW_LIST_BITS);
 static u16 allow_list_count = 0;
 
+#ifndef CONFIG_KSU_USERSPACE_POLICY
 #define KERNEL_SU_ALLOWLIST "/data/adb/ksu/.allowlist"
+#endif
 
 void ksu_persistent_allow_list(void);
 
@@ -139,6 +143,11 @@ int ksu_set_app_profile(struct app_profile *profile)
 	struct perm_data *p, *np;
 	int result = 0;
 
+#ifdef CONFIG_KSU_USERSPACE_POLICY
+	if (!ksu_policy_ready())
+		return -EAGAIN;
+#endif
+
 	if (!profile_valid(profile)) {
 		pr_err("Failed to set app profile: invalid profile!\n");
 		return -EINVAL;
@@ -205,6 +214,9 @@ out:
 		// set default non root profile
 		default_non_root_profile.umount_modules = profile->nrp_config.profile.umount_modules;
 	}
+#ifdef CONFIG_KSU_USERSPACE_POLICY
+	ksu_policy_changed();
+#endif
 
 out_unlock:
 	mutex_unlock(&allowlist_mutex);
@@ -387,6 +399,7 @@ bool ksu_get_allow_list(int *array, u16 length, u16 *out_length, u16 *out_total,
 	return true;
 }
 
+#ifndef CONFIG_KSU_USERSPACE_POLICY
 static void do_persistent_allow_list()
 {
 	u32 magic = FILE_MAGIC;
@@ -542,6 +555,12 @@ exit:
 	ksu_show_allow_list();
 	filp_close(fp, 0);
 }
+#else
+void ksu_persistent_allow_list(void)
+{
+	ksu_policy_notify();
+}
+#endif
 
 void ksu_prune_allowlist(bool (*is_uid_valid)(uid_t, char *, void *), void *data)
 {
@@ -569,6 +588,10 @@ void ksu_prune_allowlist(bool (*is_uid_valid)(uid_t, char *, void *), void *data
 			--allow_list_count;
 		}
 	}
+#ifdef CONFIG_KSU_USERSPACE_POLICY
+	if (modified)
+		ksu_policy_changed();
+#endif
 	mutex_unlock(&allowlist_mutex);
 
 	if (modified) {

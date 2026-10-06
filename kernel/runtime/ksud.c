@@ -1,10 +1,22 @@
 static const char KERNEL_SU_RC[] =
+#ifdef CONFIG_KSU_USERSPACE_POLICY
+	"\n"
+	"service ksu-policy " KSUD_PATH " policy-daemon\n"
+	"    disabled\n"
+	"    user root\n"
+	"    group root\n"
+	"    seclabel u:r:" KERNEL_SU_DOMAIN ":s0\n"
+	"    restart_period 5\n"
+#endif
 	"\n"
 
 	"on post-fs-data\n"
 	"    start logd\n"
 	// We should wait for the post-fs-data finish
 	"    exec u:r:" KERNEL_SU_DOMAIN ":s0 root -- " KSUD_PATH " post-fs-data\n"
+#ifdef CONFIG_KSU_USERSPACE_POLICY
+	"    start ksu-policy\n"
+#endif
 	"\n"
 
 	"on nonencrypted\n"
@@ -51,7 +63,9 @@ void on_post_fs_data(void)
 	done = true;
 	pr_info("on_post_fs_data!\n");
 
+#ifndef CONFIG_KSU_USERSPACE_POLICY
 	ksu_load_allow_list();
+#endif
 #ifdef CONFIG_KSU_TINYFS_PKG_OBSERVER
 	ksu_pkg_observer_init();
 #endif

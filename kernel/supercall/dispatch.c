@@ -79,6 +79,11 @@ static int do_report_event(void __user *arg)
 	case EVENT_POST_FS_DATA: {
 		static bool post_fs_data_lock = false;
 
+#ifdef CONFIG_KSU_USERSPACE_POLICY
+		if (!ksu_policy_ready())
+			return -EAGAIN;
+#endif
+
 		// Reset for emulated soft reboot
 		services_started = false;
 		if (!post_fs_data_lock) {
@@ -707,6 +712,15 @@ static int do_disable_escape_to_root(void __user *arg)
 	return 0;
 }
 
+static int do_get_policy_fd(void __user *arg)
+{
+#ifdef CONFIG_KSU_USERSPACE_POLICY
+	return ksu_install_policy_fd();
+#else
+	return -EOPNOTSUPP;
+#endif
+}
+
 // IOCTL handlers mapping table
 static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
 	// GRANT_ROOT checks permission while acquiring the selected profile.
@@ -736,6 +750,7 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
 	{ .cmd = KSU_IOCTL_SET_INIT_PGRP, .name = "SET_INIT_PGRP", .handler = do_set_init_pgrp, .perm_check = only_root },
 	{ .cmd = KSU_IOCTL_GET_SULOG_FD, .name = "GET_SULOG_FD", .handler = do_get_sulog_fd, .perm_check = only_root },
 	{ .cmd = KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT, .name = "DISABLE_ESCAPE_TO_ROOT", .handler = do_disable_escape_to_root, .perm_check = only_root, .allow_su_session = true },
+	{ .cmd = KSU_IOCTL_GET_POLICY_FD, .name = "GET_POLICY_FD", .handler = do_get_policy_fd, .perm_check = only_root },
 	{ .cmd = 0, .name = NULL, .handler = NULL, .perm_check = NULL } // Sentinel
 };
 
