@@ -1,16 +1,12 @@
 package me.weishu.kernelsu.data.repository
 
-import android.content.ComponentName
 import android.content.Context
-import android.content.pm.PackageManager
-import android.util.Log
 import androidx.core.content.edit
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.topjohnwu.superuser.ShellUtils
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.ksuApp
-import me.weishu.kernelsu.magica.BootCompletedReceiver
 import me.weishu.kernelsu.ui.screen.modulerepo.RepoSort
 import me.weishu.kernelsu.ui.util.execKsud
 import me.weishu.kernelsu.ui.util.getFeaturePersistValue
@@ -20,9 +16,9 @@ import java.security.SecureRandom
 private const val SETTINGS_PREFS = "settings"
 private const val KEY_USE_SOFT_REBOOT = "soft_reboot"
 
-/** Prefer soft reboot: always in jailbreak mode, or when the setting is enabled. */
+/** Prefer soft reboot when the setting is enabled. */
 fun isSoftRebootPreferred(): Boolean =
-    Natives.isLateLoadMode || ksuApp.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
+    ksuApp.getSharedPreferences(SETTINGS_PREFS, Context.MODE_PRIVATE)
         .getBoolean(KEY_USE_SOFT_REBOOT, false)
 
 class SettingsRepositoryImpl : SettingsRepository {
@@ -100,23 +96,6 @@ class SettingsRepositoryImpl : SettingsRepository {
         get() = prefs.getStringSet("sulog_filters", null)?.toSet()
         set(filters) = prefs.edit { putStringSet("sulog_filters", filters) }
 
-    override var autoJailbreak: Boolean
-        get() = prefs.getBoolean("auto_jailbreak", false)
-        set(value) {
-            runCatching {
-                ksuApp.packageManager.setComponentEnabledSetting(
-                    ComponentName(ksuApp, BootCompletedReceiver::class.java),
-                    if (value) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                    PackageManager.DONT_KILL_APP
-                )
-            }.onFailure {
-                Log.e("Settings", "failed to change boot receiver state to $value", it)
-            }
-            prefs.edit {
-                putBoolean("auto_jailbreak", value)
-            }
-        }
-
     override var useSoftReboot: Boolean
         get() = prefs.getBoolean(KEY_USE_SOFT_REBOOT, false)
         set(value) = prefs.edit { putBoolean(KEY_USE_SOFT_REBOOT, value) }
@@ -177,7 +156,6 @@ class SettingsRepositoryImpl : SettingsRepository {
 
     override fun setDefaultUmountModules(enabled: Boolean): Boolean = Natives.setDefaultUmountModules(enabled)
 
-    override fun isLkmMode(): Boolean = Natives.isLkmMode
 
     override fun execKsudFeatureSave() {
         execKsud("feature save", true)

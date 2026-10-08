@@ -15,9 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Adb
 import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeveloperMode
-import androidx.compose.material.icons.filled.ElectricalServices
 import androidx.compose.material.icons.filled.Fence
 import androidx.compose.material.icons.filled.FolderDelete
 import androidx.compose.material.icons.filled.Palette
@@ -25,7 +23,6 @@ import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.RemoveModerator
 import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -40,7 +37,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -55,7 +51,6 @@ import me.weishu.kernelsu.ui.component.material.SegmentedListItem
 import me.weishu.kernelsu.ui.component.material.SegmentedSwitchItem
 import me.weishu.kernelsu.ui.component.material.SendLogBottomSheet
 import me.weishu.kernelsu.ui.component.material.SnackBarHost
-import me.weishu.kernelsu.ui.component.uninstalldialog.UninstallDialog
 
 /**
  * @author weishu
@@ -69,13 +64,7 @@ fun SettingPagerMaterial(
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val snackBarHost = remember { SnackbarHostState() }
-    val showUninstallDialog = rememberSaveable { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
-
-    UninstallDialog(
-        show = showUninstallDialog.value,
-        onDismissRequest = { showUninstallDialog.value = false }
-    )
 
     Scaffold(
         topBar = {
@@ -201,7 +190,7 @@ fun SettingPagerMaterial(
                                 onCheckedChange = actions.onSetAdbRootEnabled
                             )
                         }
-                        if (!uiState.isLateLoadMode) add {
+                        add {
                             SegmentedSwitchItem(
                                 icon = Icons.Filled.RestartAlt,
                                 title = stringResource(id = R.string.settings_soft_reboot),
@@ -234,34 +223,10 @@ fun SettingPagerMaterial(
                                 onCheckedChange = actions.onSetEnableWebDebugging
                             )
                         }
-                        if (uiState.isLateLoadMode) add {
-                            SegmentedSwitchItem(
-                                icon = Icons.Filled.ElectricalServices,
-                                title = stringResource(id = R.string.settings_auto_jailbreak),
-                                summary = stringResource(id = R.string.settings_auto_jailbreak_summary),
-                                checked = uiState.autoJailbreak,
-                                onCheckedChange = actions.onSetAutoJailbreak
-                            )
-                        }
                     }
                 )
             }
 
-            if (uiState.isLkmMode && !uiState.isLateLoadMode) {
-                SegmentedColumn(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    content = listOf(
-                        {
-                            val uninstall = stringResource(id = R.string.settings_uninstall)
-                            SegmentedListItem(
-                                onClick = { showUninstallDialog.value = true },
-                                headlineContent = { Text(uninstall) },
-                                leadingContent = { Icon(Icons.Filled.Delete, uninstall) }
-                            )
-                        }
-                    )
-                )
-            }
 
             SegmentedColumn(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),

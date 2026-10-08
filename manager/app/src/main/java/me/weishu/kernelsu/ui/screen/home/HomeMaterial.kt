@@ -1,6 +1,5 @@
 package me.weishu.kernelsu.ui.screen.home
 
-import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -24,8 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
@@ -83,9 +80,8 @@ fun HomePagerMaterial(
             if (state.requiresNewKernel) {
                 WarningCard(
                     stringResource(
-                        id = if (state.canInstallKernelUpdate) R.string.require_kernel_version else R.string.require_kernel_version_gki
-                    ),
-                    onClick = if (state.canInstallKernelUpdate) actions.onInstallClick else null
+                        id = R.string.require_kernel_version_gki
+                    )
                 )
             }
             if (state.requiresNewManager) {
@@ -93,13 +89,6 @@ fun HomePagerMaterial(
                     stringResource(
                         id = R.string.require_manager_version
                     )
-                )
-            }
-            if (state.showLkmUpdate) {
-                WarningCard(
-                    message = stringResource(R.string.home_lkm_update_available),
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    onClick = actions.onInstallClick,
                 )
             }
             if (state.showRootWarning) {
@@ -175,11 +164,6 @@ private fun StatusCard(
             } else {
                 MaterialTheme.colorScheme.errorContainer
             },
-            onClick = {
-                if (!state.isLateLoadMode) {
-                    actions.onInstallClick()
-                }
-            }
         ) {
             Row(
                 modifier = Modifier
@@ -189,11 +173,7 @@ private fun StatusCard(
             ) {
                 when {
                     state.ksuVersion != null -> {
-                        val workingMode = when (state.lkmMode) {
-                            null -> if (Build.SUPPORTED_64_BIT_ABIS.isEmpty()) "32-BIT" else "LEGACY"
-                            true -> "LKM"
-                            else -> "GKI"
-                        }
+                        val workingMode = "GKI"
 
                         Icon(Icons.Outlined.CheckCircle, stringResource(R.string.home_working))
                         Column(Modifier.padding(start = 20.dp)) {
@@ -218,14 +198,6 @@ private fun StatusCard(
                                         backgroundColor = MaterialTheme.colorScheme.errorContainer
                                     )
                                 }
-                                if (state.isLateLoadMode) {
-                                    Spacer(Modifier.width(8.dp))
-                                    StatusTag(
-                                        label = stringResource(id = R.string.jailbreak_mode),
-                                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                        backgroundColor = MaterialTheme.colorScheme.errorContainer
-                                    )
-                                }
                             }
                             Spacer(Modifier.height(4.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -236,14 +208,6 @@ private fun StatusCard(
                                     ),
                                     style = MaterialTheme.typography.bodyMedium
                                 )
-                                if (state.showCustomLkmBadge) {
-                                    Spacer(Modifier.width(8.dp))
-                                    StatusTag(
-                                        label = stringResource(R.string.home_lkm_custom),
-                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                    )
-                                }
                             }
                         }
                     }
@@ -259,22 +223,6 @@ private fun StatusCard(
                                 text = stringResource(R.string.home_not_installed),
                                 style = MaterialTheme.typography.titleMedium
                             )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(R.string.home_click_to_install),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                        if (state.isSELinuxPermissive) {
-                            Button(
-                                onClick = actions.onJailbreakClick,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error,
-                                    contentColor = MaterialTheme.colorScheme.onError
-                                )
-                            ) {
-                                Text(stringResource(R.string.home_jailbreak))
-                            }
                         }
                     }
 
@@ -421,34 +369,26 @@ private fun InfoCard(systemInfo: SystemInfo) {
 @Composable
 private fun StatusCardActivatedPreview() {
     StatusCard(
-        state = previewHomeScreenState(ksuVersion = 12345, lkmMode = true, superuserCount = 5, moduleCount = 10),
-        actions = HomeActions({}, {}, {}, {})
+        state = previewHomeScreenState(ksuVersion = 12345, superuserCount = 5, moduleCount = 10),
+        actions = HomeActions({}, {}, {})
     )
 }
 
 @Preview(name = "Not Activated")
 @Composable
 private fun StatusCardNotActivatedPreview() {
-    StatusCard(state = previewHomeScreenState(ksuVersion = null, lkmMode = null), actions = HomeActions({}, {}, {}, {}))
+    StatusCard(state = previewHomeScreenState(ksuVersion = null), actions = HomeActions({}, {}, {}))
 }
 
 @Preview(name = "Permissive")
 @Composable
 private fun StatusCardPermissivePreview() {
     StatusCard(
-        state = previewHomeScreenState(ksuVersion = null, lkmMode = null, selinuxStatus = "Permissive"),
-        actions = HomeActions({}, {}, {}, {})
+        state = previewHomeScreenState(ksuVersion = null, selinuxStatus = "Permissive"),
+        actions = HomeActions({}, {}, {})
     )
 }
 
-@Preview(name = "Jailbreak")
-@Composable
-private fun StatusCardJailbreakPreview() {
-    StatusCard(
-        state = previewHomeScreenState(ksuVersion = 12345, lkmMode = true, isLateLoadMode = true, superuserCount = 5, moduleCount = 10),
-        actions = HomeActions({}, {}, {}, {})
-    )
-}
 
 private val previewSystemInfo = SystemInfo(
     kernelVersion = "6.1.0-android14-0-g123456789000-ab12345678",
@@ -461,9 +401,7 @@ private val previewSystemInfo = SystemInfo(
 @Composable
 private fun HomeScreenPreviewContent(
     ksuVersion: Int?,
-    lkmMode: Boolean?,
     isSafeMode: Boolean = false,
-    isLateLoadMode: Boolean = false,
     superuserCount: Int = 0,
     moduleCount: Int = 0,
     selinuxStatus: String = "Enforcing",
@@ -472,13 +410,11 @@ private fun HomeScreenPreviewContent(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        val actions = HomeActions({}, {}, {}, {})
+        val actions = HomeActions({}, {}, {})
         StatusCard(
             state = previewHomeScreenState(
                 ksuVersion = ksuVersion,
-                lkmMode = lkmMode,
                 isSafeMode = isSafeMode,
-                isLateLoadMode = isLateLoadMode,
                 superuserCount = superuserCount,
                 moduleCount = moduleCount,
                 selinuxStatus = selinuxStatus,
@@ -492,40 +428,31 @@ private fun HomeScreenPreviewContent(
 @Preview(name = "Home Activated", showBackground = true)
 @Composable
 private fun HomeScreenActivatedPreview() {
-    HomeScreenPreviewContent(ksuVersion = 12345, lkmMode = true, superuserCount = 5, moduleCount = 10)
+    HomeScreenPreviewContent(ksuVersion = 12345, superuserCount = 5, moduleCount = 10)
 }
 
 @Preview(name = "Home Not Activated", showBackground = true)
 @Composable
 private fun HomeScreenNotActivatedPreview() {
-    HomeScreenPreviewContent(ksuVersion = null, lkmMode = null)
+    HomeScreenPreviewContent(ksuVersion = null)
 }
 
 @Preview(name = "Home Permissive", showBackground = true)
 @Composable
 private fun HomeScreenPermissivePreview() {
-    HomeScreenPreviewContent(ksuVersion = null, lkmMode = null, selinuxStatus = "Permissive")
+    HomeScreenPreviewContent(ksuVersion = null, selinuxStatus = "Permissive")
 }
 
-@Preview(name = "Home Jailbreak", showBackground = true)
-@Composable
-private fun HomeScreenJailbreakPreview() {
-    HomeScreenPreviewContent(ksuVersion = 12345, lkmMode = true, isLateLoadMode = true, superuserCount = 5, moduleCount = 10)
-}
 
 private fun previewHomeScreenState(
     ksuVersion: Int?,
-    lkmMode: Boolean?,
     isSafeMode: Boolean = false,
-    isLateLoadMode: Boolean = false,
     superuserCount: Int = 0,
     moduleCount: Int = 0,
     selinuxStatus: String = "Enforcing",
 ) = HomeUiState(
     kernelVersion = KernelVersion(6, 1, 0),
     ksuVersion = ksuVersion,
-    lkmMode = lkmMode,
-    isLkmBundled = lkmMode == true,
     isManager = true,
     isManagerPrBuild = false,
     isKernelPrBuild = false,
@@ -533,7 +460,6 @@ private fun previewHomeScreenState(
     requiresNewManager = false,
     isRootAvailable = ksuVersion != null,
     isSafeMode = isSafeMode,
-    isLateLoadMode = isLateLoadMode,
     checkUpdateEnabled = false,
     latestVersionInfo = me.weishu.kernelsu.ui.util.module.LatestVersionInfo(),
     currentManagerVersionCode = 10000,

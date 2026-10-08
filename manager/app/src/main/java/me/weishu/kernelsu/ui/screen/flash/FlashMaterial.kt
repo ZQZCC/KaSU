@@ -51,12 +51,6 @@ fun FlashScreenMaterial(
     snackBarHost: SnackbarHostState,
 ) {
     val scrollState = rememberScrollState()
-    if (state.showJailbreakWarning) {
-        JailbreakFlashWarningDialog(
-            onConfirm = actions.onConfirmJailbreakWarning,
-            onDismiss = actions.onDismissJailbreakWarning,
-        )
-    }
 
     Scaffold(
         snackbarHost = {
