@@ -41,7 +41,6 @@ class SettingsViewModel(
             val enableWebDebugging = repo.enableWebDebugging
             val colorStyle = repo.colorStyle
             val colorSpec = repo.colorSpec
-            val isLkmMode = repo.isLkmMode()
 
             // Async loading for natives/features
             val suCompatStatus = repo.getSuCompatStatus()
@@ -59,9 +58,7 @@ class SettingsViewModel(
             val adbRootStatus = repo.getAdbRootStatus()
             val isAdbRootEnabled = repo.getAdbRootPersistValue() == 1L
             val isDefaultUmountModules = repo.isDefaultUmountModules()
-            val autoJailbreak = repo.autoJailbreak
             val useSoftReboot = repo.useSoftReboot
-            val isLateLoadMode = Natives.isLateLoadMode
 
             _uiState.update {
                 it.copy(
@@ -86,10 +83,7 @@ class SettingsViewModel(
                     sulogStatus = sulogStatus,
                     isSulogEnabled = isSulogEnabled,
                     isDefaultUmountModules = isDefaultUmountModules,
-                    isLkmMode = isLkmMode,
-                    autoJailbreak = autoJailbreak,
                     useSoftReboot = useSoftReboot,
-                    isLateLoadMode = isLateLoadMode,
                 )
             }
         }
@@ -205,10 +199,6 @@ class SettingsViewModel(
         }
     }
 
-    fun setAutoJailbreak(enabled: Boolean) {
-        repo.autoJailbreak = enabled
-        _uiState.update { it.copy(autoJailbreak = enabled) }
-    }
 
     fun setUseSoftReboot(enabled: Boolean) {
         repo.useSoftReboot = enabled

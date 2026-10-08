@@ -45,7 +45,6 @@ extern "C" fn sigsys_handler(
             SIGSYS_OCCURRED.with(|occurred| occurred.set(true));
         }
 
-        #[cfg(not(target_arch = "riscv64"))]
         let ucontext = ctx.cast::<libc::ucontext_t>();
         #[cfg(target_arch = "aarch64")]
         {
@@ -55,12 +54,6 @@ extern "C" fn sigsys_handler(
         {
             let rax = libc::REG_RAX as usize;
             (*ucontext).uc_mcontext.gregs[rax] = i64::from(-libc::EPERM);
-        }
-        #[cfg(target_arch = "riscv64")]
-        {
-            let ucontext = ctx.cast::<ksu_uapi::ucontext_t>();
-            (*ucontext).uc_mcontext.__gregs[ksu_uapi::REG_A0 as usize] =
-                (-libc::EPERM) as libc::c_ulong;
         }
     }
 }
@@ -208,26 +201,12 @@ pub fn get_version() -> i32 {
     get_info().version as i32
 }
 
-pub fn is_late_load() -> bool {
-    get_info().flags & ksu_uapi::KSU_GET_INFO_FLAG_LATE_LOAD != 0
-}
-
-pub fn is_lkm() -> bool {
-    get_info().flags & ksu_uapi::KSU_GET_INFO_FLAG_LKM != 0
-}
-
 pub const fn uapi_version() -> u32 {
     ksu_uapi::KERNEL_SU_UAPI_VERSION
 }
 
-pub fn runtime_mode() -> &'static str {
-    if is_late_load() {
-        "late-load"
-    } else if is_lkm() {
-        "lkm"
-    } else {
-        "built-in"
-    }
+pub const fn runtime_mode() -> &'static str {
+    "built-in"
 }
 
 pub fn ensure_uapi_version_matched() -> anyhow::Result<()> {

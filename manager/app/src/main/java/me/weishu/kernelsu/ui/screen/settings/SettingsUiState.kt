@@ -40,11 +40,7 @@ data class SettingsUiState(
     val adbRootStatus: String = "",
     val isAdbRootEnabled: Boolean = false,
 
-    val isLkmMode: Boolean = false,
-    val isLateLoadMode: Boolean = false,
 
-    // Auto Jailbreak
-    val autoJailbreak: Boolean = false,
 
     // Soft Reboot
     val useSoftReboot: Boolean = false
@@ -62,6 +58,5 @@ data class SettingsScreenActions(
     val onSetAdbRootEnabled: (Boolean) -> Unit,
     val onSetDefaultUmountModules: (Boolean) -> Unit,
     val onSetEnableWebDebugging: (Boolean) -> Unit,
-    val onSetAutoJailbreak: (Boolean) -> Unit,
     val onSetUseSoftReboot: (Boolean) -> Unit,
 )

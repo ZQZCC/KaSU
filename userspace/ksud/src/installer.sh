@@ -224,28 +224,10 @@ mount_partitions() {
 api_level_arch_detect() {
   API=$(grep_get_prop ro.build.version.sdk)
   ABI=$(grep_get_prop ro.product.cpu.abi)
-  if [ "$ABI" = "x86" ]; then
-    ARCH=x86
-    ABI32=x86
-    IS64BIT=false
-  elif [ "$ABI" = "arm64-v8a" ]; then
-    ARCH=arm64
-    ABI32=armeabi-v7a
-    IS64BIT=true
-  elif [ "$ABI" = "x86_64" ]; then
-    ARCH=x64
-    ABI32=x86
-    IS64BIT=true
-  elif [ "$ABI" = "riscv64" ]; then
-    ARCH=riscv64
-    ABI32=
-    IS64BIT=true
-  else
-    ARCH=arm
-    ABI=armeabi-v7a
-    ABI32=armeabi-v7a
-    IS64BIT=false
-  fi
+  [ "$ABI" = "arm64-v8a" ] || abort "! Unsupported architecture: $ABI"
+  ARCH=arm64
+  ABI32=armeabi-v7a
+  IS64BIT=true
 }
 
 #################
