@@ -30,6 +30,51 @@
  *
  */
 
+#include "selinux_hide_audit.h"
+
+/**
+ * normally we want this on stop_machine, but we don't need HARD synchronization
+ * we just let !cpuX use what they have in cache while we patch what is on cpuX.
+ * not a big deal. this is safe since, pointer-write is atomic and the old ptr
+ * still exists while in-patching.
+ *
+ * then we can just kick all the cpus, so they see the change and refetch.
+ */
+static inline void patch_ptr_slot_kick_cpu(void **target_slot, void *new_ptr)
+{
+	// __atomic_store_n((uintptr_t *)target_slot, (uintptr_t)new_ptr, __ATOMIC_RELAXED);
+	WRITE_ONCE(*target_slot, new_ptr);
+
+	kick_all_cpus_sync();
+}
+
+static noinline int ksu_write_to_readonly_slot(uintptr_t slot_ptr, uintptr_t new_ptr)
+{
+	if (!slot_ptr || !new_ptr)
+		return -EINVAL;
+
+	uintptr_t addr = slot_ptr;
+	uintptr_t base = addr & PAGE_MASK;
+	uintptr_t offset = addr & ~PAGE_MASK;
+
+	struct page *page = phys_to_page(__pa(base));
+	if (!page)
+		return -EFAULT;
+
+	void *writable_addr = vmap(&page, 1, VM_MAP, PAGE_KERNEL);
+	if (!writable_addr)
+		return -ENOMEM;
+
+	void **target_slot = (void **)((uintptr_t)writable_addr + offset);
+
+	patch_ptr_slot_kick_cpu(target_slot, (void *)new_ptr);
+
+	vunmap(writable_addr);
+	smp_mb();
+
+	return 0;
+}
+
 // enabled by default
 static bool ksu_selinux_hide_enabled __read_mostly = true;
 
@@ -321,7 +366,7 @@ page_ok:
 
 	// selinux_setprocattr hook init is on lsm.
 	
-	// downstream/slow_avc_audit_defs.h
+	// selinux_hide_audit.h
 	ksu_init_slow_avc_audit_hook();
 
 	return 0;

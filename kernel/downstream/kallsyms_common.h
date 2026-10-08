@@ -238,7 +238,7 @@ collision_found:
 	return 0x0;
 }
 
-// ksu says this isnt always available so lets use an fn ptr when using it on LKM
+// This symbol is not always available; resolve it through a function pointer.
 struct lookup_args {
 	const char *target_name;
 	uintptr_t target_addr;
@@ -396,11 +396,7 @@ static noinline size_t ksu_get_ksym_size(uintptr_t symbol_addr, size_t retfail)
  *  -- some retard "developer" using garbage collection
  *
  */
-#ifdef CONFIG_KSU_HACK_ARM64_BRANCH_LINK
-#define HASH_ARRAY_USER1 1
-#else
 #define HASH_ARRAY_USER1 0
-#endif
 
 #if defined(CONFIG_AUDIT) && defined(CONFIG_ARM64) && defined(CONFIG_KALLSYMS)
 #define HASH_ARRAY_USER2 1
