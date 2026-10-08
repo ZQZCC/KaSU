@@ -20,7 +20,7 @@ normalize_repo_url() {
     esac
 }
 
-KSU_REPO=$(normalize_repo_url "${KSU_REPO:-https://github.com/ZQZCC/xxKSU.git}")
+KSU_REPO=$(normalize_repo_url "${KSU_REPO:-https://github.com/ZQZCC/KaSU.git}")
 
 display_usage() {
     echo "Usage: $0 [--cleanup | <commit-or-tag>]"
