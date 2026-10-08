@@ -121,12 +121,6 @@ ifeq ($(CONFIG_ARM64),y)
 CFLAGS_ksu.o += $(call cc-option, -mno-outline-atomics)
 endif
 
-# Optional: for LKM users, I recommend users to build it themselves with optimizations.
-# you can get optimized codegen especially around atomics.
-# hint: decode your own /proc/cpuinfo and check it here https://github.com/llvm/llvm-project/blob/main/llvm/lib/TargetParser/Host.cpp
-# comment it out and put your cpu / arch here
-# CFLAGS_ksu.o += -mcpu=cortex-a76 -mtune=cortex-a76
-
 ifneq ($(CONFIG_KSU_DEBUG),y)
 # strip, remove tracing / profiling
 # comment out if proper backtrace is needed
@@ -146,11 +140,5 @@ CFLAGS_REMOVE_ksu.o += -enable-trivial-auto-var-init-zero-knowing-it-will-be-rem
 CFLAGS_ksu.o += -fno-stack-protector -fno-stack-check
 CFLAGS_REMOVE_ksu.o += -fsanitize=shadow-call-stack
 endif # CONFIG_KSU_DEBUG
-
-# Native fallback targets matching the traditional out-of-tree build method
-all:
-	$(MAKE) -C $(KDIR) M=$(MDIR) modules
-clean:
-	$(MAKE) -C $(KDIR) M=$(MDIR) clean
 
 # Keep a new line here!! Because someone may append config

@@ -321,7 +321,6 @@ void ksu_tinyfs_sucompat_init(void)
 	ksu_tinyfs_su_inode = inode;
 
 	smp_store_release(&ksu_tinyfs_ready, true);
-	ksu_sucompat_disable_branch();
 	ksu_tinyfs_invalidate_dentry(ksu_tinyfs_bin_path.dentry, &su_name);
 	pr_info("tinyfs: synthetic /system/bin/su enabled\n");
 
