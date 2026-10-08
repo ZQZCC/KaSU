@@ -34,11 +34,10 @@ apksign {
 }
 
 val baseCFlags = listOf(
-    "-Wall", "-Qunused-arguments", "-fvisibility=hidden", "-fvisibility-inlines-hidden",
-    "-fno-exceptions", "-fno-stack-protector", "-fomit-frame-pointer",
+    "-Wall", "-Qunused-arguments", "-fvisibility=hidden",
+    "-fno-stack-protector", "-fomit-frame-pointer",
     "-Wno-builtin-macro-redefined", "-Wno-unused-value", "-D__FILE__=__FILE_NAME__"
 )
-val baseCppFlags = baseCFlags + "-fno-rtti"
 
 android {
     namespace = "ka.su"
@@ -47,7 +46,7 @@ android {
         debug {
             externalNativeBuild {
                 cmake {
-                    arguments += listOf("-DCMAKE_CXX_FLAGS_DEBUG=-Og", "-DCMAKE_C_FLAGS_DEBUG=-Og")
+                    arguments += "-DCMAKE_C_FLAGS_DEBUG=-Og"
                 }
             }
         }
@@ -67,11 +66,9 @@ android {
                     )
                     val configFlags = listOf("-Oz", "-DNDEBUG").joinToString(" ")
 
-                    cppFlags += releaseFlags
                     cFlags += releaseFlags
 
                     arguments += listOf(
-                        "-DCMAKE_CXX_FLAGS_RELEASE=$configFlags",
                         "-DCMAKE_C_FLAGS_RELEASE=$configFlags",
                         "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--gc-sections -Wl,--exclude-libs,ALL -Wl,--icf=all -s -Wl,--hash-style=sysv -Wl,-z,norelro"
                     )
@@ -85,7 +82,6 @@ android {
         buildConfig = true
         resValues = true
         compose = true
-        prefab = true
     }
 
     androidResources {
@@ -108,7 +104,7 @@ android {
 
     externalNativeBuild {
         cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
+            path = file("src/main/c/CMakeLists.txt")
         }
     }
 
@@ -144,7 +140,6 @@ android {
             cmake {
                 arguments += "-DANDROID_STL=none"
                 cFlags += baseCFlags + "-std=c2x"
-                cppFlags += baseCppFlags + "-std=c++2b"
             }
         }
 
@@ -220,8 +215,6 @@ dependencies {
     implementation(libs.commonmark.ext.task.list.items)
 
     implementation(libs.androidx.webkit)
-
-    implementation(libs.lsposed.cxx)
 
     implementation(libs.hiddenapibypass)
 

@@ -1,27 +1,19 @@
-//
-// Created by weishu on 2022/12/9.
-//
-
-#include <sys/prctl.h>
-#include <cstdint>
-#include <cstring>
-#include <cstdio>
-#include <unistd.h>
-#include <utility>
-#include <android/log.h>
 #include <dirent.h>
-#include <cstdlib>
-
-#include <unistd.h>
-#include <climits>
-#include <sys/syscall.h>
-#include <cerrno>
+#include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/prctl.h>
+#include <unistd.h>
+
 #include "ksu.h"
 
 static int fd = -1;
 
-static int open_tinyfs_driver_fd() {
+static int open_tinyfs_driver_fd(void) {
     int control = open(KSU_TINYFS_CONTROL_PATH, O_RDONLY | O_CLOEXEC);
     if (control < 0) {
         return -1;
@@ -31,7 +23,7 @@ static int open_tinyfs_driver_fd() {
     return driver;
 }
 
-static inline int scan_driver_fd() {
+static int scan_driver_fd(void) {
     const char *kName = "[ksu_driver]";
     DIR *dir = opendir("/proc/self/fd");
     if (!dir) {
@@ -74,9 +66,7 @@ static inline int scan_driver_fd() {
     return found;
 }
 
-template<typename... Args>
-static int ksuctl(unsigned long op, Args &&... args) {
-
+static int ksuctl(unsigned long op, void *arg) {
     if (fd < 0) {
         fd = scan_driver_fd();
         if (fd < 0) {
@@ -84,14 +74,12 @@ static int ksuctl(unsigned long op, Args &&... args) {
         }
     }
 
-    static_assert(sizeof...(Args) <= 1, "ioctl expects at most one extra argument");
-
-    return ioctl(fd, op, std::forward<Args>(args)...);
+    return ioctl(fd, op, arg);
 }
 
-static struct ksu_get_info_cmd g_version {};
+static struct ksu_get_info_cmd g_version;
 
-struct ksu_get_info_cmd get_info() {
+static struct ksu_get_info_cmd get_info(void) {
     if (!g_version.version) {
         if (ksuctl(KSU_IOCTL_GET_INFO, &g_version) < 0) {
             ksuctl(KSU_IOCTL_GET_INFO_LEGACY, &g_version);
@@ -101,36 +89,42 @@ struct ksu_get_info_cmd get_info() {
     return g_version;
 }
 
-uint32_t get_kernel_uapi_version() {
-    auto info = get_info();
-    return info.uapi_version;
+uint32_t get_kernel_uapi_version(void) {
+    return get_info().uapi_version;
 }
 
-uint32_t get_manager_uapi_version() {
+uint32_t get_manager_uapi_version(void) {
     return KERNEL_SU_UAPI_VERSION;
 }
 
-uint32_t get_version() {
-    auto info = get_info();
-    return info.version;
+uint32_t get_version(void) {
+    return get_info().version;
+}
+
+int legacy_get_version(void) {
+    int32_t version = -1;
+    int32_t flags = 0;
+    int32_t result = 0;
+    prctl(0xDEADBEEF, 2, &version, &flags, &result);
+    return version;
 }
 
 bool get_allow_list(struct ksu_new_get_allow_list_cmd *cmd) {
     return ksuctl(KSU_IOCTL_NEW_GET_ALLOW_LIST, cmd) == 0;
 }
 
-bool is_safe_mode() {
-    struct ksu_check_safemode_cmd cmd = {};
+bool is_safe_mode(void) {
+    struct ksu_check_safemode_cmd cmd = {0};
     ksuctl(KSU_IOCTL_CHECK_SAFEMODE, &cmd);
     return cmd.in_safe_mode;
 }
 
-bool is_manager() {
+bool is_manager(void) {
     return true;
 }
 
-bool is_pr_build() {
-    auto info = get_info();
+bool is_pr_build(void) {
+    struct ksu_get_info_cmd info = get_info();
     if (info.version > 0) {
         return (info.flags & KSU_GET_INFO_FLAG_PR_BUILD) != 0;
     }
@@ -138,19 +132,19 @@ bool is_pr_build() {
 }
 
 bool uid_should_umount(int uid) {
-    struct ksu_uid_should_umount_cmd cmd = {};
+    struct ksu_uid_should_umount_cmd cmd = {0};
     cmd.uid = uid;
     ksuctl(KSU_IOCTL_UID_SHOULD_UMOUNT, &cmd);
     return cmd.should_umount;
 }
 
-bool set_app_profile(const app_profile *profile) {
-    struct ksu_set_app_profile_cmd cmd = {};
+bool set_app_profile(const struct app_profile *profile) {
+    struct ksu_set_app_profile_cmd cmd = {0};
     cmd.profile = *profile;
     return ksuctl(KSU_IOCTL_SET_APP_PROFILE, &cmd) == 0;
 }
 
-int get_app_profile(app_profile *profile) {
+int get_app_profile(struct app_profile *profile) {
     struct ksu_get_app_profile_cmd cmd = {.profile = *profile};
     int ret = ksuctl(KSU_IOCTL_GET_APP_PROFILE, &cmd);
     *profile = cmd.profile;
@@ -158,14 +152,14 @@ int get_app_profile(app_profile *profile) {
 }
 
 bool set_su_enabled(bool enabled) {
-    struct ksu_set_feature_cmd cmd = {};
+    struct ksu_set_feature_cmd cmd = {0};
     cmd.feature_id = KSU_FEATURE_SU_COMPAT;
     cmd.value = enabled ? 1 : 0;
     return ksuctl(KSU_IOCTL_SET_FEATURE, &cmd) == 0;
 }
 
-bool is_su_enabled() {
-    struct ksu_get_feature_cmd cmd = {};
+bool is_su_enabled(void) {
+    struct ksu_get_feature_cmd cmd = {0};
     cmd.feature_id = KSU_FEATURE_SU_COMPAT;
     if (ksuctl(KSU_IOCTL_GET_FEATURE, &cmd) != 0) {
         return false;
@@ -177,7 +171,7 @@ bool is_su_enabled() {
 }
 
 static inline bool get_feature(uint32_t feature_id, uint64_t *out_value, bool *out_supported) {
-    struct ksu_get_feature_cmd cmd = {};
+    struct ksu_get_feature_cmd cmd = {0};
     cmd.feature_id = feature_id;
     if (ksuctl(KSU_IOCTL_GET_FEATURE, &cmd) != 0) {
         return false;
@@ -188,7 +182,7 @@ static inline bool get_feature(uint32_t feature_id, uint64_t *out_value, bool *o
 }
 
 static inline bool set_feature(uint32_t feature_id, uint64_t value) {
-    struct ksu_set_feature_cmd cmd = {};
+    struct ksu_set_feature_cmd cmd = {0};
     cmd.feature_id = feature_id;
     cmd.value = value;
     return ksuctl(KSU_IOCTL_SET_FEATURE, &cmd) == 0;
@@ -198,7 +192,7 @@ bool set_kernel_umount_enabled(bool enabled) {
     return set_feature(KSU_FEATURE_KERNEL_UMOUNT, enabled ? 1 : 0);
 }
 
-bool is_kernel_umount_enabled() {
+bool is_kernel_umount_enabled(void) {
     uint64_t value = 0;
     bool supported = false;
     if (!get_feature(KSU_FEATURE_KERNEL_UMOUNT, &value, &supported)) {
@@ -210,9 +204,9 @@ bool is_kernel_umount_enabled() {
     return value != 0;
 }
 
-bool is_kernel_umount_supported() {
+bool is_kernel_umount_supported(void) {
     bool supported = false;
-    return get_feature(KSU_FEATURE_KERNEL_UMOUNT, nullptr, &supported) && supported;
+    return get_feature(KSU_FEATURE_KERNEL_UMOUNT, NULL, &supported) && supported;
 }
 
 int set_selinux_hide_enabled(bool enabled) {
@@ -222,7 +216,7 @@ int set_selinux_hide_enabled(bool enabled) {
     return 0;
 }
 
-bool is_selinux_hide_enabled() {
+bool is_selinux_hide_enabled(void) {
     uint64_t value = 0;
     bool supported = false;
     if (!get_feature(KSU_FEATURE_SELINUX_HIDE, &value, &supported)) {

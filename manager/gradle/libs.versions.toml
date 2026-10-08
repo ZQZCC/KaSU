@@ -64,8 +64,6 @@ commonmark-ext-gfm-strikethrough = { module = "org.commonmark:commonmark-ext-gfm
 commonmark-ext-autolink = { module = "org.commonmark:commonmark-ext-autolink", version.ref = "commonmark" }
 commonmark-ext-task-list-items = { module = "org.commonmark:commonmark-ext-task-list-items", version.ref = "commonmark" }
 
-lsposed-cxx = { module = "org.lsposed.libcxx:libcxx", version.ref = "ndk" }
-
 okhttp = { module = "com.squareup.okhttp3:okhttp" }
 okhttp-bom = { module = "com.squareup.okhttp3:okhttp-bom", version.ref = "okhttp" }
 
