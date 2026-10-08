@@ -11,8 +11,8 @@ MDIR := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 $(info -- KDIR: $(KDIR))
 $(info -- MDIR: $(MDIR))
 
-# compliant to last upstream kernel change as of a05b1d7
-CFLAGS_ksu.o += -DKSU_VERSION=32668
+KSU_VERSION := $(shell expr 30000 + $(shell git -C "$(MDIR)" rev-list --count HEAD) - 84)
+CFLAGS_ksu.o += -DKSU_VERSION=$(KSU_VERSION)
 
 KSU_PACKAGE_NAME ?= ka.super
 $(info -- KernelSU Manager package name: $(KSU_PACKAGE_NAME))
