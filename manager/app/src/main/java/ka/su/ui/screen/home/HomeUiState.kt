@@ -10,8 +10,6 @@ data class HomeUiState(
     val ksuVersion: Int?,
     val managerUAPIVersion: Int,
     val kernelUAPIVersion: Int?,
-    val lkmMode: Boolean?,
-    val isLkmBundled: Boolean,
     val isManager: Boolean,
     val isManagerPrBuild: Boolean,
     val isKernelPrBuild: Boolean,
@@ -19,7 +17,6 @@ data class HomeUiState(
     val requiresNewManager: Boolean,
     val isRootAvailable: Boolean,
     val isSafeMode: Boolean,
-    val isLateLoadMode: Boolean,
     val checkUpdateEnabled: Boolean,
     val latestVersionInfo: LatestVersionInfo,
     val currentManagerVersionCode: Long,
@@ -34,22 +31,7 @@ data class HomeUiState(
         get() = isManager && !requiresNewKernel && !requiresNewManager && isRootAvailable
 
     val showGkiWarning: Boolean
-        get() = ksuVersion != null && lkmMode == false
-
-    val showLkmUpdate: Boolean
-        get() = isManager &&
-                lkmMode == true &&
-                isLkmBundled &&
-                ksuVersion?.toLong() != currentManagerVersionCode &&
-                !requiresNewKernel &&
-                !requiresNewManager
-
-    // Jailbreak mode runs on locked bootloaders, so flashing a boot image would brick the device.
-    val canInstallKernelUpdate: Boolean
-        get() = lkmMode == true && !isLateLoadMode
-
-    val showCustomLkmBadge: Boolean
-        get() = lkmMode == true && !isLkmBundled
+        get() = ksuVersion != null
 
     val showRootWarning: Boolean
         get() = ksuVersion != null && !isRootAvailable
@@ -66,9 +48,7 @@ data class HomeUiState(
 
 @Immutable
 data class HomeActions(
-    val onInstallClick: () -> Unit,
     val onSuperuserClick: () -> Unit,
     val onModuleClick: () -> Unit,
     val onOpenUrl: (String) -> Unit,
-    val onJailbreakClick: () -> Unit = {},
 )

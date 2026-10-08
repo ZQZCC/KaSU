@@ -8,7 +8,6 @@ data class FlashUiState(
     val text: String,
     val showRebootAction: Boolean,
     val flashingStatus: FlashingStatus,
-    val showJailbreakWarning: Boolean,
     @param:StringRes val rebootLabelRes: Int,
 )
 
@@ -17,6 +16,4 @@ data class FlashScreenActions(
     val onBack: () -> Unit,
     val onSaveLog: () -> Unit,
     val onReboot: () -> Unit,
-    val onConfirmJailbreakWarning: () -> Unit,
-    val onDismissJailbreakWarning: () -> Unit,
 )

@@ -146,6 +146,7 @@ struct ksu_get_sulog_fd_cmd {
 	__u32 flags; /* Input: reserved for future use, must be 0 */
 };
 
+
 #define KSU_UMOUNT_WIPE 0	/* ignore everything and wipe list */
 #define KSU_UMOUNT_ADD 1	/* add entry (path + flags) */
 #define KSU_UMOUNT_DEL 2	/* delete entry, strcmp */

@@ -42,7 +42,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
@@ -76,7 +75,6 @@ import ka.su.ui.screen.colorpalette.ColorPaletteScreen
 import ka.su.ui.screen.executemoduleaction.ExecuteModuleActionScreen
 import ka.su.ui.screen.flash.FlashScreen
 import ka.su.ui.screen.home.HomePager
-import ka.su.ui.screen.install.InstallScreen
 import ka.su.ui.screen.module.ModulePager
 import ka.su.ui.screen.modulerepo.ModuleRepoDetailScreen
 import ka.su.ui.screen.modulerepo.ModuleRepoScreen
@@ -194,7 +192,6 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.AppProfile> { key -> AppProfileScreen(key.uid) }
                                 entry<Route.ModuleRepo> { ModuleRepoScreen() }
                                 entry<Route.ModuleRepoDetail> { key -> ModuleRepoDetailScreen(key.module) }
-                                entry<Route.Install> { InstallScreen() }
                                 entry<Route.Flash> { key -> FlashScreen(key.flashIt) }
                                 entry<Route.ExecuteModuleAction> { key -> ExecuteModuleActionScreen(key.moduleId, key.fromShortcut) }
                                 entry<Route.Home> { mainScreenEntry() }
@@ -317,7 +314,7 @@ fun MainScreen(
                             .graphicsLayer { alpha = pageAlpha }
                     ) {
                         when (page) {
-                            0 -> HomePager(navController, bottomInnerPadding, isCurrentPage)
+                            0 -> HomePager(bottomInnerPadding, isCurrentPage)
                             1 -> SuperUserPager(navController, bottomInnerPadding, isCurrentPage)
                             2 -> ModulePager(bottomInnerPadding, isCurrentPage)
                             3 -> SettingPager(navController, bottomInnerPadding, isCurrentPage)

@@ -5,12 +5,8 @@ on:
     branches: [ "master", "main", "dev", "ci", "test", "staging" ]
     paths:
       - '.github/workflows/build-manager.yml'
-      - '.github/workflows/build-lkm.yml'
-      - '.github/workflows/ddk-lkm.yml'
       - '.github/workflows/ksud.yml'
-      - '.github/workflows/ksuinit.yml'
       - '.github/scripts/setup-rust-build.sh'
-      - '.github/riscv64-cargo.toml'
       - 'repack_apk.py'
       - 'manager/**'
       - 'kernel/**'
@@ -21,12 +17,8 @@ on:
     branches: [ "master", "main", "dev" ]
     paths:
       - '.github/workflows/build-manager.yml'
-      - '.github/workflows/build-lkm.yml'
-      - '.github/workflows/ddk-lkm.yml'
       - '.github/workflows/ksud.yml'
-      - '.github/workflows/ksuinit.yml'
       - '.github/scripts/setup-rust-build.sh'
-      - '.github/riscv64-cargo.toml'
       - 'repack_apk.py'
       - 'manager/**'
       - 'kernel/**'
@@ -92,32 +84,11 @@ jobs:
           echo "Certificate size: $SIZE_HEX ($SIZE_DEC bytes)"
           echo "Certificate hash: $HASH"
 
-  build-lkm:
-    needs: generate-key
-    uses: ./.github/workflows/build-lkm.yml
-    with:
-      expected_size: ${{ needs.generate-key.outputs.expected_size || '' }}
-      expected_hash: ${{ needs.generate-key.outputs.expected_hash || '' }}
-    secrets: inherit
-
-  build-ksuinit:
-    uses: ./.github/workflows/ksuinit.yml
-
   build-ksud:
-    needs: [build-lkm, build-ksuinit]
-    strategy:
-      matrix:
-        include:
-          - target: aarch64-linux-android
-            pack_lkm: true
-            pack_ksuinit: true
-
     uses: ./.github/workflows/ksud.yml
     with:
-      target: ${{ matrix.target }}
-      pack_lkm: ${{ matrix.pack_lkm }}
-      pack_ksuinit: ${{ matrix.pack_ksuinit }}
-  
+      target: aarch64-linux-android
+
   build-manager:
     needs: [generate-key]
     if: always() && needs.generate-key.result == 'success'

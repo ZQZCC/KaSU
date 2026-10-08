@@ -14,14 +14,6 @@
 #ifndef __KSU_H_KERNEL_COMPAT
 #define __KSU_H_KERNEL_COMPAT
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION (4, 18, 0)
-#include "external/linux_overflow.h"
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION (3, 9, 0)
-#include "external/linux_hashtable.h"
-#endif
-
 #ifndef READ_ONCE
 #define READ_ONCE(x) (*(const volatile typeof(x) __may_alias *)&(x))
 #endif
@@ -254,18 +246,6 @@ static inline void ksu_static_key_disable(struct static_key *key)
 
 #endif // < 4.3
 #endif // >= 3.4 && CONFIG_JUMP_LABEL
-
-struct user_arg_ptr {
-#ifdef CONFIG_COMPAT
-	bool is_compat;
-#endif
-	union {
-		const char __user *const __user *native;
-#ifdef CONFIG_COMPAT
-		const compat_uptr_t __user *compat;
-#endif
-	} ptr;
-};
 
 #ifndef untagged_addr
 #ifdef CONFIG_ARM64

@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef __KSU_H_ARM64_BL_PATCH
-#define __KSU_H_ARM64_BL_PATCH
+#ifndef __KSU_H_SELINUX_HIDE_ARM64
+#define __KSU_H_SELINUX_HIDE_ARM64
 
 #include <linux/version.h>
 #include <linux/uaccess.h>
@@ -149,18 +149,6 @@ bail:
 }
 
 /**
- * arm64_b_patch() - hunt and patch the first b insn targeting @symbol_addr.
- * @target_callsite: callsite on where to start scanning for (ptr / fn_ptr)
- * @target_width: how far to scan for (bytes / ptrdiff)
- * @symbol_addr: symbol being called to look for at the site (fn_ptr)
- * @hook_addr: symbol to redirect "b symbol_addr" to (fn_ptr)
- */
-static inline int arm64_b_patch(uintptr_t target_callsite, ptrdiff_t target_width, uintptr_t symbol_addr, uintptr_t hook_addr)
-{
-	return arm64_branch_patch(target_callsite, target_width, symbol_addr, hook_addr, BRANCH_TYPE_B);
-}
-
-/**
  * arm64_bl_patch() - hunt and patch the first bl insn targeting @symbol_addr.
  * @target_callsite: callsite on where to start scanning for (ptr / fn_ptr)
  * @target_width: how far to scan for (bytes / ptrdiff)
@@ -172,20 +160,4 @@ static inline int arm64_bl_patch(uintptr_t target_callsite, ptrdiff_t target_wid
 	return arm64_branch_patch(target_callsite, target_width, symbol_addr, hook_addr, BRANCH_TYPE_BL);
 }
 
-/**
- * arm64_b_or_bl_patch() - hunt and patch the first 'b' or 'bl' insn targeting @symbol_addr.
- * @target_callsite: callsite on where to start scanning for (ptr / fn_ptr)
- * @target_width: how far to scan for (bytes / ptrdiff)
- * @symbol_addr: symbol being called to look for at the site (fn_ptr)
- * @hook_addr: symbol to redirect "b symbol_addr" to (fn_ptr)
- */
-static inline int arm64_b_or_bl_patch(uintptr_t target_callsite, ptrdiff_t target_width, uintptr_t symbol_addr, uintptr_t hook_addr)
-{
-	return arm64_branch_patch(target_callsite, target_width, symbol_addr, hook_addr, BRANCH_TYPE_B_OR_BL);
-}
-
-#undef BRANCH_TYPE_B
-#undef BRANCH_TYPE_BL
-#undef BRANCH_TYPE_B_OR_BL
-
-#endif // __KSU_H_ARM64_BL_PATCH
+#endif // __KSU_H_SELINUX_HIDE_ARM64

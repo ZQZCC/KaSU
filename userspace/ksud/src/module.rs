@@ -87,10 +87,6 @@ pub fn get_common_script_envs(module_id: Option<&str>) -> Vec<(&'static str, Str
         }
     }
 
-    if ksucalls::is_late_load() {
-        envs.push(("KSU_LATE_LOAD", "1".to_string()));
-    }
-
     envs
 }
 
@@ -229,7 +225,7 @@ impl SigchldBlock {
             }
             let timeout = libc::timespec {
                 tv_sec: remaining.as_secs() as libc::time_t,
-                tv_nsec: remaining.subsec_nanos() as libc::c_long,
+                tv_nsec: remaining.subsec_nanos().into(),
             };
             // SIGCHLD stays blocked between waitpid and sigtimedwait to avoid lost wakeups.
             if unsafe {
@@ -868,15 +864,6 @@ pub fn disable_module(id: &str) -> Result<()> {
 
 pub fn disable_all_modules() -> Result<()> {
     mark_all_modules(defs::DISABLE_FILE_NAME)?;
-    if let Err(e) = regenerate_preinit_rc() {
-        warn!("regenerate preinit rc failed: {e}");
-    }
-    Ok(())
-}
-
-pub fn uninstall_all_modules() -> Result<()> {
-    info!("Uninstalling all modules");
-    mark_all_modules(defs::REMOVE_FILE_NAME)?;
     if let Err(e) = regenerate_preinit_rc() {
         warn!("regenerate preinit rc failed: {e}");
     }

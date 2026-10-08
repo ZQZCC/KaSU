@@ -176,10 +176,6 @@ def find_latest_apk(app_build_type: str) -> Path:
 
 ARCH_TO_TRIPLE = {
     "arm64-v8a": "aarch64-linux-android",
-    "armeabi-v7a": "armv7-linux-androideabi",
-    "x86": "i686-linux-android",
-    "x86_64": "x86_64-linux-android",
-    "riscv64": "riscv64-linux-android",
 }
 
 
@@ -447,7 +443,7 @@ def build_parser() -> argparse.ArgumentParser:
         "-a",
         "--arch",
         action="append",
-        help="Target architecture(s), repeat or use comma list, e.g. -a arm64-v8a -a armeabi-v7a",
+        help="Target architecture (arm64-v8a)",
     )
     repack.add_argument("-K", "--keystore-path", help="Keystore path override")
     repack.add_argument("-A", "--key-alias", help="Key alias override")

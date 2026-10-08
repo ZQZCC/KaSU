@@ -12,7 +12,6 @@ mod android {
     pub const ADB_DIR: &str = "/data/adb/";
     pub const WORKING_DIR: &str = concatcp!(ADB_DIR, "ksu/");
     pub const BINARY_DIR: &str = concatcp!(WORKING_DIR, "bin/");
-    pub const LIBRARY_DIR: &str = concatcp!(WORKING_DIR, "lib/");
     pub const LOG_DIR: &str = concatcp!(WORKING_DIR, "log/");
     pub const SULOGD_LOCK_PATH: &str = concatcp!(WORKING_DIR, "sulogd.lock");
 
@@ -22,7 +21,6 @@ mod android {
 
     pub const KSURC_PATH: &str = concatcp!(WORKING_DIR, ".ksurc");
     pub const DAEMON_PATH: &str = concatcp!(ADB_DIR, "ksud");
-    pub const LIBADBROOT_PATH: &str = concatcp!(LIBRARY_DIR, "libadbroot.so");
 
     pub const DAEMON_LINK_PATH: &str = concatcp!(BINARY_DIR, "ksud");
 
@@ -52,11 +50,6 @@ mod android {
     pub const METAMODULE_MOUNT_SCRIPT: &str = "metamount.sh";
     pub const METAMODULE_METAINSTALL_SCRIPT: &str = "metainstall.sh";
     pub const METAMODULE_METAUNINSTALL_SCRIPT: &str = "metauninstall.sh";
-
-    pub const KSU_BACKUP_DIR: &str = WORKING_DIR;
-    pub const KSU_BACKUP_FILE_PREFIX: &str = "ksu_backup_";
-    pub const BACKUP_FILENAME: &str = "stock_image.sha1";
-    pub const KSU_TEMP_BACKUP_DIR_NAME: &str = "boot_backup";
 
     pub const DEFAULT_PACKAGE_NAME: &str = env!("KSU_PACKAGE_NAME");
 }

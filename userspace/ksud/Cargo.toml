@@ -22,8 +22,6 @@ sha256 = "1"
 tempfile = "3"
 chrono = "0.4"
 regex-lite = "0.1"
-memmap2 = "0.9"
-android-bootimg = { git = "https://github.com/5ec1cff/android_bootimg", rev = "150425b027c76ea104c82e408571651f2181b2c2" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 rustix = { version = "1", features = [
@@ -53,8 +51,6 @@ is_executable = "1"
 nom = "8"
 derive-new = "0.7"
 getopts = "0.2"
-ksuinit = { path = "../ksuinit" }
-adb_client = { git = "https://github.com/KernelSU2/adb_client" }
 prop-rs-android = { git = "https://github.com/KernelSU2/ksu_props", rev = "ddb6ee7294467f7f25bad2118e9e24eee104144b" }
 
 [build-dependencies]

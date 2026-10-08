@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef __KSU_H_SLOW_AVC_AUDIT_HOOK
-#define __KSU_H_SLOW_AVC_AUDIT_HOOK
+#ifndef __KSU_H_SELINUX_HIDE_AUDIT
+#define __KSU_H_SELINUX_HIDE_AUDIT
 
 static bool ksu_selinux_hide_enabled;
 static u32 cached_su_sid;
@@ -47,6 +47,7 @@ static __always_inline void ksu_slow_avc_audit_inline(u32 *tsid)
 }
 
 #if defined(CONFIG_AUDIT) && defined(CONFIG_ARM64) && defined(CONFIG_KALLSYMS)
+#include "selinux_hide_arm64.h"
 
 struct selinux_state;
 __maybe_unused void ksu_slow_avc_audit(u32 *tsid) { return; } // dummy
@@ -190,6 +191,26 @@ bail:;
 }
 
 #elif defined(CONFIG_KPROBES)
+// heapified kprobe registration, copied from upstream
+static struct kprobe *init_kprobe(const char *name, kprobe_pre_handler_t handler)
+{
+	struct kprobe *kp = kzalloc(sizeof(struct kprobe), GFP_KERNEL);
+	if (!kp)
+		return nullptr;
+
+	kp->symbol_name = name;
+	kp->pre_handler = handler;
+
+	int ret = register_kprobe(kp);
+	pr_info("%s: register %s kprobe: %d\n", __func__, name, ret);
+	if (ret) {
+		kfree(kp);
+		return nullptr;
+	}
+
+	return kp;
+}
+
 static struct kprobe *slow_avc_audit_kp;
 static int slow_avc_audit_pre_handler(struct kprobe *p, struct pt_regs *regs)
 {
@@ -232,4 +253,4 @@ static void ksu_init_slow_avc_audit_hook(void)
 }
 #endif
 
-#endif // __KSU_H_SLOW_AVC_AUDIT_HOOK
+#endif // __KSU_H_SELINUX_HIDE_AUDIT

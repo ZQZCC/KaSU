@@ -21,6 +21,3 @@ target_include_directories(k PRIVATE .)
 find_library(log-lib log)
 
 target_link_libraries(k ${log-lib})
-
-add_library(adbroot SHARED adbroot.cc)
-target_link_libraries(adbroot ${log-lib})

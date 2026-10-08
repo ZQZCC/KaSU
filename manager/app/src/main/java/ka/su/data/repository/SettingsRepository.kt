@@ -17,7 +17,6 @@ interface SettingsRepository {
     var superuserShowOnlyPrimaryUserApps: Boolean
     var superuserSortOption: Int
     var suLogFilters: Set<String>?
-    var autoJailbreak: Boolean
     var useSoftReboot: Boolean
     val intentToken: String
 
@@ -47,7 +46,6 @@ interface SettingsRepository {
     fun isDefaultUmountModules(): Boolean
     fun setDefaultUmountModules(enabled: Boolean): Boolean
 
-    fun isLkmMode(): Boolean
 
     fun execKsudFeatureSave()
 }
