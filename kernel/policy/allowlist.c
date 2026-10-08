@@ -400,68 +400,163 @@ bool ksu_get_allow_list(int *array, u16 length, u16 *out_length, u16 *out_total,
 }
 
 #ifndef CONFIG_KSU_USERSPACE_POLICY
-static void do_persistent_allow_list()
+struct allowlist_snapshot {
+	u32 magic;
+	u32 version;
+	struct app_profile profiles[];
+};
+
+static u64 allowlist_save_generation;
+static bool allowlist_save_running;
+
+static int replace_allowlist(struct file *dir, struct file *temp)
 {
-	u32 magic = FILE_MAGIC;
-	u32 version = FILE_FORMAT_VERSION;
-	struct perm_data *p = NULL;
-	loff_t off = 0;
-	int i;
+	struct path *parent = &dir->f_path;
+	struct dentry *source = temp->f_path.dentry;
+	struct dentry *target;
+	struct renamedata rd = { .flags = 0 };
+	int ret;
 
-	const struct cred *saved = override_creds(ksu_cred);
-	struct file *fp = filp_open(KERNEL_SU_ALLOWLIST, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-	if (IS_ERR(fp)) {
-		pr_err("save_allow_list create file failed: %ld\n", PTR_ERR(fp));
-		goto out;
+	if (temp->f_path.mnt != parent->mnt || source->d_parent != parent->dentry)
+		return -EXDEV;
+
+	ret = mnt_want_write(parent->mnt);
+	if (ret)
+		return ret;
+
+	lock_rename(parent->dentry, parent->dentry);
+	target = lookup_one_len(".allowlist", parent->dentry, sizeof(".allowlist") - 1);
+	if (IS_ERR(target)) {
+		ret = PTR_ERR(target);
+		goto out_unlock;
 	}
 
-	// store magic and version
-	if (kernel_write(fp, &magic, sizeof(magic), &off) != sizeof(magic)) {
-		pr_err("save_allow_list write magic failed.\n");
-		goto close_file;
+	ret = security_path_rename(parent, source, parent, target, 0);
+	if (!ret) {
+		rd.old_dir = file_inode(dir);
+		rd.old_dentry = source;
+		rd.new_dir = file_inode(dir);
+		rd.new_dentry = target;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+		rd.old_mnt_idmap = mnt_idmap(parent->mnt);
+		rd.new_mnt_idmap = mnt_idmap(parent->mnt);
+#else
+		rd.old_mnt_userns = mnt_user_ns(parent->mnt);
+		rd.new_mnt_userns = mnt_user_ns(parent->mnt);
+#endif
+		ret = vfs_rename(&rd);
 	}
+	dput(target);
 
-	if (kernel_write(fp, &version, sizeof(version), &off) != sizeof(version)) {
-		pr_err("save_allow_list write version failed.\n");
-		goto close_file;
-	}
-
-	hash_for_each (allow_list, i, p, list) {
-		pr_info("save allow list, name: %s uid :%d, allow: %d\n", p->profile.key, p->profile.curr_uid,
-				p->profile.allow_su);
-
-		kernel_write(fp, &p->profile, sizeof(p->profile), &off);
-	}
-
-close_file:
-	filp_close(fp, 0);
-out:
-	revert_creds(saved);
+out_unlock:
+	unlock_rename(parent->dentry, parent->dentry);
+	mnt_drop_write(parent->mnt);
+	return ret;
 }
 
-// this is a bit heavier than task work / workqueue but this allows
-// us to have our own context. we give it a full escaped-to-root one.
+static int save_allowlist(struct allowlist_snapshot *snapshot, size_t size)
+{
+	struct file *dir, *temp;
+	loff_t off = 0;
+	ssize_t written;
+	int ret;
+
+	dir = filp_open("/data/adb/ksu", O_RDONLY | O_DIRECTORY, 0);
+	if (IS_ERR(dir))
+		return PTR_ERR(dir);
+	temp = filp_open(KERNEL_SU_ALLOWLIST ".tmp", O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW, 0644);
+	if (IS_ERR(temp)) {
+		ret = PTR_ERR(temp);
+		goto out_dir;
+	}
+
+	written = kernel_write(temp, snapshot, size, &off);
+	if (written != size) {
+		ret = written < 0 ? written : -EIO;
+		goto out_temp;
+	}
+	ret = vfs_fsync(temp, 0);
+	if (!ret)
+		ret = replace_allowlist(dir, temp);
+	if (!ret)
+		ret = vfs_fsync(dir, 0);
+out_temp:
+	filp_close(temp, 0);
+out_dir:
+	filp_close(dir, 0);
+	return ret;
+}
+
 static int persistent_allow_list_pre(void *data)
 {
-	/**
-	 * repurpose the mutex they were holding on ksu_persistent_allow_list_fn
-	 * since all this does eventually is to call kernel_write
-	 * we hit two birds in one stone. exclusive io + exclusive kthread
-	 * there wont be a single instance lock, but for what we need, its finee
-	 * we just let other threads stall.
-	 * 'mutex-trylock-fail-then-return' is detrimental here
-	 */
-	guarded_mutex_lock(&allowlist_mutex);
-	pr_info("do_persistent_allow_list: pid: %d started\n", current->pid);
-	escape_to_root_forced(); // give permissions for everything
-	do_persistent_allow_list();
-	pr_info("do_persistent_allow_list: pid: %d exit\n", current->pid);
-	return 0;
+	const struct cred *saved;
+	struct allowlist_snapshot *snapshot;
+	struct perm_data *p;
+	u64 generation;
+	size_t capacity, count, size;
+	int i, ret;
+
+	BUILD_BUG_ON(offsetof(struct allowlist_snapshot, profiles) != 2 * sizeof(u32));
+	escape_to_root_forced();
+	saved = override_creds(ksu_cred);
+	for (;;) {
+		capacity = READ_ONCE(allow_list_count);
+		snapshot = kvmalloc(sizeof(*snapshot) + capacity * sizeof(snapshot->profiles[0]), GFP_KERNEL);
+		mutex_lock(&allowlist_mutex);
+		if (!snapshot) {
+			allowlist_save_running = false;
+			mutex_unlock(&allowlist_mutex);
+			ret = -ENOMEM;
+			pr_err("save_allow_list snapshot failed: %d\n", ret);
+			break;
+		}
+		// Allocate outside the lock; retry if the table grew meanwhile.
+		if (allow_list_count > capacity) {
+			mutex_unlock(&allowlist_mutex);
+			kvfree(snapshot);
+			continue;
+		}
+		snapshot->magic = FILE_MAGIC;
+		snapshot->version = FILE_FORMAT_VERSION;
+		count = 0;
+		hash_for_each (allow_list, i, p, list)
+			memcpy(&snapshot->profiles[count++], &p->profile, sizeof(p->profile));
+		generation = allowlist_save_generation;
+		mutex_unlock(&allowlist_mutex);
+
+		size = sizeof(*snapshot) + count * sizeof(snapshot->profiles[0]);
+		ret = save_allowlist(snapshot, size);
+		kvfree(snapshot);
+		if (ret)
+			pr_err("save_allow_list failed: %d\n", ret);
+
+		mutex_lock(&allowlist_mutex);
+		if (generation == allowlist_save_generation) {
+			allowlist_save_running = false;
+			mutex_unlock(&allowlist_mutex);
+			break;
+		}
+		mutex_unlock(&allowlist_mutex);
+	}
+	revert_creds(saved);
+	return ret;
 }
 
-void ksu_persistent_allow_list()
+void ksu_persistent_allow_list(void)
 {
-	kthread_run(persistent_allow_list_pre, NULL, "allowlist");
+	struct task_struct *task;
+
+	mutex_lock(&allowlist_mutex);
+	++allowlist_save_generation;
+	if (!allowlist_save_running) {
+		allowlist_save_running = true;
+		task = kthread_run(persistent_allow_list_pre, NULL, "allowlist");
+		if (IS_ERR(task)) {
+			allowlist_save_running = false;
+			pr_err("save_allow_list start failed: %ld\n", PTR_ERR(task));
+		}
+	}
+	mutex_unlock(&allowlist_mutex);
 }
 
 static void migrate_profile(u32 version, struct app_profile *profile)
