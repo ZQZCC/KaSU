@@ -1,1 +1,5 @@
 *.bat eol=crlf
+
+kernel/downstream/toolkit.h linguist-language=C
+kernel/downstream/kallsyms_common.h linguist-language=C
+kernel/feature/selinux_hide_arm64.h linguist-language=C
