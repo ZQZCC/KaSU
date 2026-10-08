@@ -12,7 +12,6 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import ka.su.Natives
 import ka.su.R
 import ka.su.data.repository.isSoftRebootPreferred
 import ka.su.ui.navigation3.LocalNavigator
@@ -26,10 +25,7 @@ fun FlashScreen(flashIt: FlashIt) {
     val logContent = remember { StringBuilder() }
     var showRebootAction by rememberSaveable { mutableStateOf(false) }
     var flashingStatus by rememberSaveable { mutableStateOf(FlashingStatus.FLASHING) }
-    val needJailbreakWarning = flashIt is FlashIt.FlashBoot && Natives.isLateLoadMode
-    // Soft reboot keeps the jailbreak and still applies modules
-    val softReboot = flashIt is FlashIt.FlashModules && isSoftRebootPreferred()
-    var flashingEnabled by rememberSaveable { mutableStateOf(!needJailbreakWarning) }
+    val softReboot = isSoftRebootPreferred()
     val snackbarHost = remember { SnackbarHostState() }
 
     fun showMessage(message: String) {
@@ -45,14 +41,12 @@ fun FlashScreen(flashIt: FlashIt) {
         onTextUpdate = { text = it },
         onShowRebootChange = { showRebootAction = it },
         onFlashingStatusChange = { flashingStatus = it },
-        enabled = flashingEnabled,
     )
 
     val state = FlashUiState(
         text = text,
         showRebootAction = showRebootAction,
         flashingStatus = flashingStatus,
-        showJailbreakWarning = needJailbreakWarning && !flashingEnabled,
         rebootLabelRes = if (softReboot) R.string.reboot_soft else R.string.reboot,
     )
     val actions = FlashScreenActions(
@@ -65,8 +59,6 @@ fun FlashScreen(flashIt: FlashIt) {
                 }
             }
         },
-        onConfirmJailbreakWarning = { flashingEnabled = true },
-        onDismissJailbreakWarning = dropUnlessResumed { navigator.pop() },
     )
 
     FlashScreenMaterial(state, actions, snackbarHost)

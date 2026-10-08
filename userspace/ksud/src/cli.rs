@@ -3,10 +3,8 @@ use clap::Parser;
 use std::path::PathBuf;
 
 use android_logger::Config;
-use log::{LevelFilter, error, info};
+use log::{LevelFilter, info};
 
-use crate::boot_patch::{BootPatchArgs, BootRestoreArgs};
-use crate::lkm_image::BootPatchV2Args;
 use crate::module::regenerate_preinit_rc;
 use crate::{
     apk_sign, assets, debug, defs, init_event, ksu_uapi, ksucalls, module, module_config, sulog,
@@ -46,58 +44,11 @@ enum Commands {
     /// Trigger `boot-complete` event
     BootCompleted,
 
-    /// Load kernelsu.ko and execute late-load stage scripts
-    LateLoad {
-        /// Use adb root to execute late-load for jailbreaking by Magica
-        #[arg(long, default_missing_value = "5555", num_args = 0..=1)]
-        magica: Option<u16>,
-
-        /// Pass allow_shell=1 when loading kernelsu.ko
-        #[arg(long)]
-        allow_shell: bool,
-
-        /// Restore adb properties after magica late-load
-        #[arg(long)]
-        post_magica: bool,
-
-        /// Specify kernel KMI version instead of auto-detection
-        #[arg(long)]
-        kmi: Option<String>,
-
-        /// manager package name
-        #[arg(long, default_value_t = String::from(defs::DEFAULT_PACKAGE_NAME))]
-        package_name: String,
-    },
-
     /// Emulate system reboot
     SoftReboot,
 
-    /// Load a kernel module with kallsyms access
-    Insmod {
-        /// kernel module path
-        module: PathBuf,
-        /// module load parameters (e.g. key=val key2=val2)
-        #[arg(trailing_var_arg = true, allow_hyphen_values = true, num_args = 0..)]
-        params: Vec<String>,
-    },
-
     /// Install KernelSU userspace component to system
-    Install {
-        #[arg(long, default_value = None)]
-        libadbroot: Option<PathBuf>,
-
-        #[arg(long, default_value = None)]
-        data_path: Option<PathBuf>,
-    },
-
-    /// Unload KernelSU kernel module (LKM Only)
-    Unload,
-
-    /// Uninstall KernelSU modules and itself(LKM Only)
-    Uninstall {
-        #[arg(long, default_value_t = String::from(defs::DEFAULT_PACKAGE_NAME))]
-        package_name: String,
-    },
+    Install,
 
     /// SELinux policy Patch tool
     Sepolicy {
@@ -117,22 +68,6 @@ enum Commands {
         command: Feature,
     },
 
-    /// Patch boot or init_boot images to apply KernelSU
-    BootPatch(BootPatchArgs),
-
-    /// Restore boot or init_boot images patched by KernelSU
-    BootRestore(BootRestoreArgs),
-
-    /// Patch KernelSU into a boot image
-    ///
-    /// Always operates on a boot image; never selects init_boot or vendor_boot.
-    BootPatchV2(BootPatchV2Args),
-
-    /// Show boot information
-    BootInfo {
-        #[command(subcommand)]
-        command: BootInfo,
-    },
     /// For developers
     Debug {
         #[command(subcommand)]
@@ -156,31 +91,6 @@ enum Commands {
     Initrc {
         #[command(subcommand)]
         command: Initrc,
-    },
-}
-
-#[derive(clap::Subcommand, Debug)]
-enum BootInfo {
-    /// show current kmi version
-    CurrentKmi,
-
-    /// show supported kmi versions
-    SupportedKmis,
-
-    /// check if device is A/B capable
-    IsAbDevice,
-
-    /// show auto-selected boot partition name
-    DefaultPartition,
-
-    /// list available partitions for current or OTA toggled slot
-    AvailablePartitions,
-
-    /// show slot suffix for current or OTA toggled slot
-    SlotSuffix {
-        /// toggle to another slot
-        #[arg(short = 'u', long, default_value = "false")]
-        ota: bool,
     },
 }
 
@@ -214,7 +124,7 @@ enum Debug {
 
     /// Extract an embedded binary to a specified path
     ExtractBinary {
-        /// binary name (e.g. busybox, resetprop, bootctl)
+        /// binary name (e.g. busybox, resetprop)
         name: String,
         /// destination file path
         path: PathBuf,
@@ -526,8 +436,6 @@ pub fn run() -> Result<()> {
 
         Commands::SoftReboot => crate::soft_reboot::soft_reboot(),
 
-        Commands::Insmod { module, params } => debug::insmod(&module, &params),
-
         Commands::Module { command } => {
             utils::switch_mnt_ns(1)?;
             match command {
@@ -630,39 +538,12 @@ pub fn run() -> Result<()> {
                 }
             }
         }
-        Commands::Install {
-            libadbroot,
-            data_path,
-        } => utils::install(libadbroot, data_path),
-        Commands::Unload => crate::unload::unload(),
-        Commands::Uninstall { package_name } => utils::uninstall(&package_name),
+        Commands::Install => utils::install(),
         Commands::Sepolicy { command } => match command {
             Sepolicy::Patch { sepolicy } => crate::sepolicy::live_patch(&sepolicy),
             Sepolicy::Apply { file } => crate::sepolicy::apply_file(file),
             Sepolicy::Check { sepolicy } => crate::sepolicy::check_rule(&sepolicy),
         },
-        Commands::LateLoad {
-            magica,
-            allow_shell,
-            post_magica,
-            kmi,
-            package_name,
-        } => {
-            if let Some(port) = magica {
-                return crate::magica::run(port, &package_name, allow_shell).map_err(|e| {
-                    error!("Error running magica: {e}");
-                    e
-                });
-            }
-            let result = crate::late_load::run(&package_name, kmi, allow_shell);
-            if post_magica {
-                info!("Restoring adb properties (post-magica cleanup)...");
-                if let Err(e) = crate::magica::disable_adb_root() {
-                    error!("disable adb root failed: {e}");
-                }
-            }
-            result
-        }
         Commands::Services => {
             if ksucalls::get_version() <= 0 {
                 info!("KernelSU not available, exiting services");
@@ -732,12 +613,10 @@ pub fn run() -> Result<()> {
                 println!("flags: 0x{:x}", info.flags);
                 println!("uapi_version: {}", info.uapi_version);
                 println!("features: 0x{:x}", info.features);
-                println!("lkm: {}", ksucalls::is_lkm());
                 println!(
                     "bundled: {}",
                     (info.flags & ksu_uapi::KSU_GET_INFO_FLAG_BUNDLED) != 0
                 );
-                println!("late_load: {}", ksucalls::is_late_load());
                 println!("runtime_mode: {}", ksucalls::runtime_mode());
                 println!(
                     "pr_build: {}",
@@ -751,50 +630,6 @@ pub fn run() -> Result<()> {
             }
         },
 
-        Commands::BootPatch(boot_patch) => crate::boot_patch::patch(boot_patch),
-
-        Commands::BootInfo { command } => match command {
-            BootInfo::CurrentKmi => {
-                let kmi = crate::boot_patch::get_current_kmi()?;
-                println!("{kmi}");
-                // return here to avoid printing the error message
-                return Ok(());
-            }
-            BootInfo::SupportedKmis => {
-                let kmi = crate::assets::list_supported_kmi();
-                for kmi in &kmi {
-                    println!("{kmi}");
-                }
-                return Ok(());
-            }
-            BootInfo::IsAbDevice => {
-                let val = crate::utils::getprop("ro.build.ab_update")
-                    .unwrap_or_else(|| String::from("false"));
-                let is_ab = val.trim().to_lowercase() == "true";
-                println!("{}", if is_ab { "true" } else { "false" });
-                return Ok(());
-            }
-            BootInfo::DefaultPartition => {
-                let kmi = crate::boot_patch::get_current_kmi().unwrap_or_else(|_| String::new());
-                let name = crate::boot_patch::choose_boot_partition(&kmi, false, &None);
-                println!("{name}");
-                return Ok(());
-            }
-            BootInfo::SlotSuffix { ota } => {
-                let suffix = crate::boot_patch::get_slot_suffix(ota);
-                println!("{suffix}");
-                return Ok(());
-            }
-            BootInfo::AvailablePartitions => {
-                let parts = crate::boot_patch::list_available_partitions();
-                for p in &parts {
-                    println!("{p}");
-                }
-                return Ok(());
-            }
-        },
-        Commands::BootRestore(boot_restore) => crate::boot_patch::restore(boot_restore),
-        Commands::BootPatchV2(patch) => crate::lkm_image::patch_boot(&patch),
         Commands::Resetprop { args } => {
             let mut full_args = vec!["resetprop".to_string()];
             full_args.extend(args);

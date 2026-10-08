@@ -18,9 +18,6 @@ apksign = "1.4"
 okhttp = "5.5.0"
 hiddenapibypass = "6.1"
 appiconloader = "1.5.0"
-protobuf = "4.36.1"
-commons-compress = "1.28.0"
-xz = "1.12"
 
 [plugins]
 agp-app = { id = "com.android.application", version.ref = "agp" }
@@ -30,7 +27,6 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 lsplugin-apksign = { id = "org.lsposed.lsplugin.apksign", version.ref = "apksign" }
-protobuf = { id = "com.google.protobuf", version = "0.10.0" }
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
@@ -78,8 +74,3 @@ hiddenapibypass = { module = "org.lsposed.hiddenapibypass:hiddenapibypass", vers
 material-kolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
 
 appiconloader = { module = "me.zhanghai.android.appiconloader:appiconloader", version.ref = "appiconloader" }
-
-protobuf-kotlin-lite = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobuf" }
-protobuf-protoc = { module = "com.google.protobuf:protoc", version.ref = "protobuf" }
-commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commons-compress" }
-xz = { module = "org.tukaani:xz", version.ref = "xz" }
