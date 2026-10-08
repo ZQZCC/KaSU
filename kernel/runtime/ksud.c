@@ -116,9 +116,6 @@ void on_boot_completed(void)
 	track_throne(true);
 #endif
 
-#ifdef CONFIG_KSU_HOSTSREDIRECT
-	ksu_hostsredirect_init();
-#endif
 }
 
 static ssize_t (*orig_read)(struct file *, char __user *, size_t, loff_t *);

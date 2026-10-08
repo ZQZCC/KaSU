@@ -51,18 +51,6 @@ $(info -- KernelSU/compat: exported policy_rwlock found!)
 CFLAGS_ksu.o += -DKSU_COMPAT_HAS_EXPORTED_POLICY_RWLOCK
 endif
 
-# branch link hook vfs_statx, this newer version uses struct filename
-ifeq ($(shell grep "int vfs_statx" $(srctree)/fs/stat.c 2>/dev/null | grep -q "struct filename" 2>/dev/null; echo $$?),0)
-# $(info -- KernelSU/compat: vfs_statx has struct filename argument!)
-CFLAGS_ksu.o += -DKSU_HAS_VFS_STATX2
-endif
-
-# branch link hook, do_faccessat
-ifeq ($(shell grep "long do_faccessat" $(srctree)/fs/open.c 2>/dev/null | grep -q "flags" 2>/dev/null; echo $$?),0)
-# $(info -- KernelSU/compat: do_faccessat has flags argument!)
-CFLAGS_ksu.o += -DKSU_HAS_FACCESSAT2
-endif
-
 # UL, look for read_iter on f_op struct
 ifeq ($(shell grep -q "read_iter" $(srctree)/include/linux/fs.h 2>/dev/null; echo $$?),0)
 $(info -- KernelSU/compat: f_op->read_iter found!)
@@ -116,16 +104,9 @@ CFLAGS_ksu.o += $(call cc-option, -std=gnu2y)
 # clang and gcc CAN try to drop a runtime C11 atomics detector
 # https://github.com/llvm/llvm-project/blob/main/llvm/test/CodeGen/AArch64/atomic-ops.ll
 # however this is problematic to us as those cannot be linked to the kernel (e.g. __aarch64_cas4_acq, __aarch64_cas4_rel)
-# so for LKM they just get plain ARMv8.0 atomics, not LSE / LSE2, even when the device is capable of LSE.
 ifeq ($(CONFIG_ARM64),y)
 CFLAGS_ksu.o += $(call cc-option, -mno-outline-atomics)
 endif
-
-# Optional: for LKM users, I recommend users to build it themselves with optimizations.
-# you can get optimized codegen especially around atomics.
-# hint: decode your own /proc/cpuinfo and check it here https://github.com/llvm/llvm-project/blob/main/llvm/lib/TargetParser/Host.cpp
-# comment it out and put your cpu / arch here
-# CFLAGS_ksu.o += -mcpu=cortex-a76 -mtune=cortex-a76
 
 ifneq ($(CONFIG_KSU_DEBUG),y)
 # strip, remove tracing / profiling
@@ -146,11 +127,5 @@ CFLAGS_REMOVE_ksu.o += -enable-trivial-auto-var-init-zero-knowing-it-will-be-rem
 CFLAGS_ksu.o += -fno-stack-protector -fno-stack-check
 CFLAGS_REMOVE_ksu.o += -fsanitize=shadow-call-stack
 endif # CONFIG_KSU_DEBUG
-
-# Native fallback targets matching the traditional out-of-tree build method
-all:
-	$(MAKE) -C $(KDIR) M=$(MDIR) modules
-clean:
-	$(MAKE) -C $(KDIR) M=$(MDIR) clean
 
 # Keep a new line here!! Because someone may append config
