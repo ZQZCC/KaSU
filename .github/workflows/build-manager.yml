@@ -6,25 +6,19 @@ on:
     paths:
       - '.github/workflows/build-manager.yml'
       - '.github/workflows/ksud.yml'
-      - '.github/scripts/setup-rust-build.sh'
       - 'repack_apk.py'
       - 'manager/**'
       - 'kernel/**'
       - 'userspace/**'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
   pull_request:
     branches: [ "master", "main", "dev" ]
     paths:
       - '.github/workflows/build-manager.yml'
       - '.github/workflows/ksud.yml'
-      - '.github/scripts/setup-rust-build.sh'
       - 'repack_apk.py'
       - 'manager/**'
       - 'kernel/**'
       - 'userspace/**'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
   workflow_call:
   workflow_dispatch:
 
