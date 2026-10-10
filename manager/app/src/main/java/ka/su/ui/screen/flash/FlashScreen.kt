@@ -9,6 +9,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.dropUnlessResumed
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -27,6 +30,13 @@ fun FlashScreen(flashIt: FlashIt) {
     var flashingStatus by rememberSaveable { mutableStateOf(FlashingStatus.FLASHING) }
     val softReboot = isSoftRebootPreferred()
     val snackbarHost = remember { SnackbarHostState() }
+    val backEnabled = flashingStatus != FlashingStatus.FLASHING
+
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = !backEnabled,
+        onBackCompleted = {},
+    )
 
     fun showMessage(message: String) {
         scope.launch {
@@ -50,7 +60,7 @@ fun FlashScreen(flashIt: FlashIt) {
         rebootLabelRes = if (softReboot) R.string.reboot_soft else R.string.reboot,
     )
     val actions = FlashScreenActions(
-        onBack = dropUnlessResumed { navigator.pop() },
+        onBack = dropUnlessResumed { if (backEnabled) navigator.pop() },
         onSaveLog = saveLog(logContent, scope) { showMessage(it) },
         onReboot = {
             scope.launch {
