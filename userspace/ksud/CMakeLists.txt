@@ -50,5 +50,5 @@ target_compile_definitions(ksud PRIVATE
     YYJSON_DISABLE_READER=1 YYJSON_DISABLE_FILE=1 YYJSON_DISABLE_UTILS=1
     YYJSON_DISABLE_FAST_FP_CONV=1 YYJSON_DISABLE_NON_STANDARD=1)
 target_compile_options(ksud PRIVATE $<$<COMPILE_LANGUAGE:C>:-Wall;-Wextra;-Werror;-ffunction-sections;-fdata-sections>)
-target_link_options(ksud PRIVATE -Wl,--gc-sections -Wl,--icf=safe -Wl,--pack-dyn-relocs=android)
+target_link_options(ksud PRIVATE -Wl,-O2 -Wl,--gc-sections -Wl,--icf=safe -Wl,--pack-dyn-relocs=android)
 target_link_libraries(ksud PRIVATE ksud_zip log dl m)
