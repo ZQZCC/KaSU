@@ -191,6 +191,9 @@
   <string name="settings_selinux_hide_summary">阻止应用检测 SELinux 修改</string>
   <string name="settings_selinux_hide_reboot_required">重启生效</string>
   <string name="settings_selinux_hide_failed">错误： %d</string>
+  <string name="settings_hide_bootloader">属性伪装</string>
+  <string name="settings_hide_bootloader_summary">通过 resetprop 实现弱 BL 隐藏</string>
+  <string name="settings_hide_bootloader_failed">无法保存属性伪装设置</string>
   <string name="settings_sulog">SU 日志</string>
   <string name="settings_sulog_summary">将 Root 相关事件记录到 KernelSU 的 SU 日志文件中</string>
   <string name="feature_status_unsupported_summary">内核不支持此特性</string>

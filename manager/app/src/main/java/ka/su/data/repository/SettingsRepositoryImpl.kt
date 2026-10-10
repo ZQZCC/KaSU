@@ -12,6 +12,7 @@ import ka.su.ui.screen.modulerepo.RepoSort
 import ka.su.ui.util.execKsud
 import ka.su.ui.util.getFeaturePersistValue
 import ka.su.ui.util.getFeatureStatus
+import ka.su.ui.util.getBootloaderHideValue
 import java.security.SecureRandom
 
 private const val SETTINGS_PREFS = "settings"
@@ -134,6 +135,11 @@ class SettingsRepositoryImpl : SettingsRepository {
     override fun isSelinuxHideEnabled(): Boolean = Natives.isSelinuxHideEnabled()
 
     override fun setSelinuxHideEnabled(enabled: Boolean): Int = Natives.setSelinuxHideEnabled(enabled)
+
+    override suspend fun getHideBootloaderValue(): Long? = getBootloaderHideValue()
+
+    override fun setHideBootloaderEnabled(enabled: Boolean): Boolean =
+        execKsud("hide-bootloader ${if (enabled) 1 else 0}", true)
 
     override suspend fun getSulogStatus(): String = getFeatureStatus("sulog")
 

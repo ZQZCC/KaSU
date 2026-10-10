@@ -112,6 +112,12 @@ suspend fun getFeaturePersistValue(feature: String): Long? = withContext(Dispatc
     valueLine.substringAfter("Value:").trim().toLongOrNull()
 }
 
+suspend fun getBootloaderHideValue(): Long? = withContext(Dispatchers.IO) {
+    val result = getRootShell().newJob()
+        .add("${getKsuDaemonPath()} hide-bootloader").to(ArrayList<String>(), null).exec()
+    if (result.isSuccess) result.out.singleOrNull()?.trim()?.toLongOrNull() else null
+}
+
 fun install() {
     val start = SystemClock.elapsedRealtime()
     val result = execKsud("install", true)

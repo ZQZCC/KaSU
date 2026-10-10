@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Adb
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.DeveloperMode
 import androidx.compose.material.icons.filled.Fence
+import androidx.compose.material.icons.filled.FindReplace
 import androidx.compose.material.icons.filled.FolderDelete
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Policy
@@ -224,6 +225,17 @@ fun SettingPagerMaterial(
                                 checked = uiState.isDefaultUmountModules,
                                 onCheckedChange = actions.onSetDefaultUmountModules
                             )
+                        }
+                        uiState.isHideBootloaderEnabled?.let { enabled ->
+                            add {
+                                SegmentedSwitchItem(
+                                    icon = Icons.Filled.FindReplace,
+                                    title = stringResource(id = R.string.settings_hide_bootloader),
+                                    summary = stringResource(id = R.string.settings_hide_bootloader_summary),
+                                    checked = enabled,
+                                    onCheckedChange = actions.onSetHideBootloaderEnabled
+                                )
+                            }
                         }
                         add {
                             SegmentedSwitchItem(

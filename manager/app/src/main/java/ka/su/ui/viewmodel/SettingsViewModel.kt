@@ -56,6 +56,7 @@ class SettingsViewModel(
             val isKernelUmountEnabled = repo.isKernelUmountEnabled()
             val selinuxHideStatus = repo.getSelinuxHideStatus()
             val isSelinuxHideEnabled = repo.isSelinuxHideEnabled()
+            val hideBootloaderValue = repo.getHideBootloaderValue()
             val sulogStatus = repo.getSulogStatus()
             val isSulogEnabled = repo.getSulogPersistValue() == 1L
             val adbRootStatus = repo.getAdbRootStatus()
@@ -74,6 +75,7 @@ class SettingsViewModel(
                     isKernelUmountEnabled = isKernelUmountEnabled,
                     selinuxHideStatus = selinuxHideStatus,
                     isSelinuxHideEnabled = isSelinuxHideEnabled,
+                    isHideBootloaderEnabled = hideBootloaderValue?.let { it == 1L },
                     sulogStatus = sulogStatus,
                     isSulogEnabled = isSulogEnabled,
                     isDefaultUmountModules = isDefaultUmountModules,
@@ -192,6 +194,22 @@ class SettingsViewModel(
         }
     }
 
+
+    fun setHideBootloaderEnabled(enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val saved = repo.setHideBootloaderEnabled(enabled)
+            if (saved) {
+                _uiState.update { it.copy(isHideBootloaderEnabled = enabled) }
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    ksuApp,
+                    if (saved) R.string.reboot_to_apply else R.string.settings_hide_bootloader_failed,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        }
+    }
 
     fun setUseSoftReboot(enabled: Boolean) {
         repo.useSoftReboot = enabled

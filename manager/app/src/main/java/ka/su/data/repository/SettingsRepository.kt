@@ -35,6 +35,9 @@ interface SettingsRepository {
     fun isSelinuxHideEnabled(): Boolean
     fun setSelinuxHideEnabled(enabled: Boolean): Int
 
+    suspend fun getHideBootloaderValue(): Long?
+    fun setHideBootloaderEnabled(enabled: Boolean): Boolean
+
     suspend fun getSulogStatus(): String
     suspend fun getSulogPersistValue(): Long?
     fun setSulogEnabled(enabled: Boolean): Boolean
