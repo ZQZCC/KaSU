@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 enum { OPT_TEMP = 1, OPT_STDIN = 2, OPT_CONFIG = 4, OPT_GLOBAL = 8, OPT_FLAGS = 16 };
 
@@ -516,6 +517,27 @@ static int kernel_command(int argc, char **argv)
 	return ksu_ioctl(KSU_IOCTL_ADD_TRY_UMOUNT, &request) < 0 ? -1 : 0;
 }
 
+static int bootloader_command(int argc, char **argv)
+{
+	struct arguments args;
+	int result = parse(argc, argv, "hide-bootloader", "[0|1]", 0, 0, 1, &args);
+	if (result)
+		return result;
+	const char *value = args.value[0];
+	if (!value) {
+		result = ksu_bootloader_hide_enabled();
+		if (result < 0)
+			return -1;
+		printf("%d\n", result);
+		return 0;
+	}
+	if (!strcmp(value, "0"))
+		return ksu_write_file(KSU_BOOTLOADER_HIDE_DISABLED, "", 0);
+	if (strcmp(value, "1"))
+		return fail("Expected 0 or 1");
+	return !unlink(KSU_BOOTLOADER_HIDE_DISABLED) || errno == ENOENT ? 0 : -1;
+}
+
 int ksu_cli_main(int argc, char **argv)
 {
 	ksu_setup_sigsys();
@@ -534,7 +556,7 @@ int ksu_cli_main(int argc, char **argv)
 	static const char *const names[] = {
 	    "module",  "sepolicy",     "profile",	"feature",	  "debug",
 	    "kernel",  "post-fs-data", "services",	"boot-completed", "soft-reboot",
-	    "install", "sulogd",       "policy-daemon", "initrc"};
+	    "install", "sulogd",       "policy-daemon", "initrc",	  "hide-bootloader"};
 	if (argc == 2 && (!strcmp(argv[1], "--version") || !strcmp(argv[1], "-V"))) {
 		printf("ksud %s (uapi: %u)\n", KSU_VERSION_NAME, KERNEL_SU_UAPI_VERSION);
 		return 0;
@@ -571,6 +593,9 @@ int ksu_cli_main(int argc, char **argv)
 		break;
 	case 5:
 		result = kernel_command(argc - 1, argv + 1);
+		break;
+	case 14:
+		result = bootloader_command(argc - 1, argv + 1);
 		break;
 	default: {
 		if (cmd == 13) {

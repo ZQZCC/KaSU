@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/system_properties.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -443,6 +444,65 @@ void ksu_services(void)
 	ksu_run_stage(KSU_STAGE_SERVICE, 0);
 }
 
+int ksu_bootloader_hide_enabled(void)
+{
+	struct stat st;
+	if (!stat(KSU_BOOTLOADER_HIDE_DISABLED, &st))
+		return 0;
+	return errno == ENOENT ? 1 : -1;
+}
+
+static void hide_bootloader(void)
+{
+	int result = ksu_bootloader_hide_enabled();
+	if (result < 0) {
+		warn_failed(result, "read bootloader hiding setting");
+		return;
+	}
+	if (!result)
+		return;
+	if (ksu_prop_init()) {
+		warn_failed(-1, "initialize bootloader properties");
+		return;
+	}
+	static const struct {
+		const char *name, *value;
+	} properties[] = {
+	    {"ro.boot.vbmeta.device_state", "locked"},
+	    {"ro.boot.verifiedbootstate", "green"},
+	    {"ro.boot.flash.locked", "1"},
+	    {"ro.boot.veritymode", "enforcing"},
+	    {"ro.boot.warranty_bit", "0"},
+	    {"ro.warranty_bit", "0"},
+	    {"ro.debuggable", "0"},
+	    {"ro.force.debuggable", "0"},
+	    {"ro.secure", "1"},
+	    {"ro.adb.secure", "1"},
+	    {"ro.build.type", "user"},
+	    {"ro.build.tags", "release-keys"},
+	    {"ro.vendor.boot.warranty_bit", "0"},
+	    {"ro.vendor.warranty_bit", "0"},
+	    {"vendor.boot.vbmeta.device_state", "locked"},
+	    {"vendor.boot.verifiedbootstate", "green"},
+	    {"sys.oem_unlock_allowed", "0"},
+	};
+	for (size_t i = 0; i < sizeof(properties) / sizeof(properties[0]); ++i) {
+		const char *name = properties[i].name, *value = properties[i].value;
+		if (!__system_property_find(name) || ksu_property_equals(name, "") ||
+		    ksu_property_equals(name, value))
+			continue;
+		struct ksu_resetprop options = {
+		    .flags = KSU_PROP_SKIP_SVC,
+		    .name = (const unsigned char *)name,
+		    .name_length = strlen(name),
+		    .value = (const unsigned char *)value,
+		    .value_length = strlen(value),
+		};
+		if (ksu_resetprop_run(&options))
+			LOG(ANDROID_LOG_WARN, "hide_bootloader: failed to set %s", name);
+	}
+}
+
 void ksu_boot_completed(void)
 {
 	if (!ksu_uapi_matches())
@@ -450,5 +510,6 @@ void ksu_boot_completed(void)
 	struct ksu_report_event_cmd command = {.event = EVENT_BOOT_COMPLETED};
 	ksu_ioctl(KSU_IOCTL_REPORT_EVENT, &command);
 	LOG(ANDROID_LOG_INFO, "on_boot_completed triggered!");
+	hide_bootloader();
 	ksu_run_stage(KSU_STAGE_BOOT_COMPLETED, 0);
 }

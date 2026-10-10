@@ -10,6 +10,7 @@
 #endif
 
 #define KSU_WORKING_DIR KSU_ADB_DIR "/ksu"
+#define KSU_BOOTLOADER_HIDE_DISABLED KSU_WORKING_DIR "/.disable_bootloader_hide"
 #define KSU_BINARY_DIR KSU_WORKING_DIR "/bin"
 #define KSU_BUSYBOX_PATH KSU_BINARY_DIR "/busybox"
 #define KSU_LOG_DIR KSU_WORKING_DIR "/log"

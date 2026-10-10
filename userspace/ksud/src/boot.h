@@ -7,6 +7,7 @@
 
 bool ksu_uapi_matches(void);
 bool ksu_is_safe_mode(void);
+int ksu_bootloader_hide_enabled(void);
 enum ksu_boot_stage {
 	KSU_STAGE_POST_FS_DATA,
 	KSU_STAGE_POST_MOUNT,
