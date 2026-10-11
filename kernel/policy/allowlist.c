@@ -257,7 +257,7 @@ bool ksu_uid_should_umount(uid_t uid)
 #else
 	struct app_profile *profile;
 	bool res;
-	if (likely(ksu_is_manager_appid_valid()) && unlikely(ksu_get_manager_appid() == uid % PER_USER_RANGE)) {
+	if (is_uid_manager(uid)) {
 		// we should not umount on manager!
 		return false;
 	}
@@ -366,10 +366,13 @@ bool ksu_get_allow_list(int *array, u16 length, u16 *out_length, u16 *out_total,
 	struct perm_data *p = NULL;
 	u16 i = 0, j = 0;
 	int iter;
+	uid_t manager_appid = ksu_get_manager_appid();
+
 	rcu_read_lock();
 	hash_for_each_rcu (allow_list, iter, p, list) {
 		// pr_info("get_allow_list uid: %d allow: %d\n", p->uid, p->allow);
-		if (p->profile.allow_su == allow && !is_uid_manager(p->profile.curr_uid)) {
+		if (p->profile.allow_su == allow &&
+		    p->profile.curr_uid % KSU_PER_USER_RANGE != manager_appid) {
 			if (j < length) {
 				array[j++] = p->profile.curr_uid;
 			}

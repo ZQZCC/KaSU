@@ -38,7 +38,7 @@ static int ksu_pkg_rename(struct user_namespace *mnt_userns,
 					new_dir, new_dentry, flags);
 
 	if (!ret && observe)
-		track_throne(false);
+		track_throne();
 	return ret;
 }
 
@@ -132,7 +132,7 @@ static void ksu_rename_observer_slow(struct dentry *old_dentry, struct dentry *n
 		return;
 
 	pr_info("renameat: %s -> %s, new path: %s\n", old_dentry->d_iname, new_dentry->d_iname, buf);
-	track_throne(false);
+	track_throne();
 	return;
 }
 
@@ -181,7 +181,7 @@ static inline void ksu_rename_observer(struct dentry *old_dentry, struct dentry 
 		goto slow_path;
 
 	pr_info("renameat: %s -> %s, /data/system d_inode: 0x%lx \n", old_dentry->d_iname, new_dentry->d_iname, system_dir_inode_ptr);
-	track_throne(false);
+	track_throne();
 	return;
 
 slow_path:

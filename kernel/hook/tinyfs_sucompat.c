@@ -40,14 +40,17 @@ static int ksu_tinyfs_d_revalidate(struct dentry *dentry, unsigned int flags)
 
 	if (!inode)
 		return 0;
-	if (inode == ksu_tinyfs_control_inode)
+	if (inode == ksu_tinyfs_control_inode) {
+		if ((flags & LOOKUP_RCU) && current_uid().val)
+			return -ECHILD;
 		return manager_or_root() ? 1 : -ENOENT;
+	}
 
 	if (inode != ksu_tinyfs_su_inode)
 		return 0;
 
-	/* Keep the SELinux SID-to-context fallback out of RCU-walk. */
-	if ((flags & LOOKUP_RCU) && unlikely(current_uid().val == 0))
+	/* Directory ownership and the root SELinux fallback can sleep. */
+	if (flags & LOOKUP_RCU)
 		return -ECHILD;
 
 	return ksu_tinyfs_su_visible() ? 1 : -ENOENT;
@@ -255,6 +258,7 @@ void ksu_tinyfs_control_init(void)
 
 	ksu_tinyfs_orig_bin_iops = iops;
 	ksu_tinyfs_control_inode = inode;
+	ksu_manager_identity_init();
 	/* Built-in only: keep the directory alive for both initialization stages. */
 	ksu_tinyfs_bin_path = bin_path;
 	ksu_tinyfs_bin_iops = *iops;

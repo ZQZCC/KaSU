@@ -5,7 +5,7 @@ void ksu_throne_tracker_init();
 
 void ksu_throne_tracker_exit();
 
-void track_throne(bool prune_only);
+void track_throne(void);
 
 /*
  * small helper to check if file exists

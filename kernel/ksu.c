@@ -33,7 +33,6 @@
 #include "policy/app_profile.h"
 #include "policy/allowlist.h"
 #include "policy/feature.h"
-#include "manager/apk_sign.h"
 #include "manager/manager_identity.h"
 #include "manager/throne_tracker.h"
 #include "supercall/internal.h"
@@ -61,10 +60,10 @@
 #include "downstream/toolkit.h"
 
 // unity build
+#include "manager/manager_identity.c"
 #include "policy/allowlist.c"
 #include "policy/app_profile.c"
 #include "policy/feature.c"
-#include "manager/apk_sign.c"
 #include "manager/pkg_observer.c"
 #include "manager/throne_tracker.c"
 

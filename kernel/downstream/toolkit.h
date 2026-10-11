@@ -15,7 +15,6 @@
 #define __KSU_H_TOOLKIT
 
 // extensions
-#define CHANGE_MANAGER_UID 	10006
 #define KSU_UMOUNT_GETSIZE 	107	// get list size // shit is u8 we cant fit 10k+ on it
 #define KSU_UMOUNT_GETLIST 	108	// get list
 #define GET_SULOG_DUMP		10009	// get sulog dump, max, last 100 escalations, deprecated
@@ -36,9 +35,6 @@ static inline int toolkit_handle_sys_reboot(int magic1, int magic2, unsigned int
 	// extensions
 	uint64_t reply = (uint64_t)*(void **)arg;
 
-	if (magic2 == CHANGE_MANAGER_UID)
-		goto change_manager_uid;
-
 	// deprecated
 	if (magic2 == GET_SULOG_DUMP)
 		return 0;
@@ -56,15 +52,6 @@ static inline int toolkit_handle_sys_reboot(int magic1, int magic2, unsigned int
 		goto change_ksuflags;
 	
 	return 0;
-
-change_manager_uid:
-	pr_info("toolkit: ksu_set_manager_appid to: %d\n", cmd);
-	ksu_set_manager_appid(cmd);
-
-	if (cmd != ksu_get_manager_appid())
-		return 0;
-	
-	return !!copy_to_user((void __user *)*arg, &reply, sizeof(reply));
 
 get_sulog_dump_v2:
 	if (!!send_sulog_dump(*arg))

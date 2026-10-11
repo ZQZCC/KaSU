@@ -97,10 +97,8 @@ void on_boot_completed(void)
 	pr_info("on_boot_completed!\n");
 #ifdef CONFIG_KSU_TINYFS_PKG_OBSERVER
 	ksu_pkg_observer_init();
-	track_throne(false);
-#else
-	track_throne(true);
 #endif
+	track_throne();
 
 }
 
@@ -401,10 +399,6 @@ static noinline void ksu_install_rc_hook(struct file *file)
 	ksu_grab_init_session_keyring();
 #ifdef CONFIG_KSU_TINYFS_SUCOMPAT
 	ksu_tinyfs_control_init();
-#endif
-#ifdef CONFIG_KSU_TINYFS_PKG_OBSERVER
-	/* Manager recovery must not depend on ksud's UAPI check. */
-	track_throne(false);
 #endif
 
 	// now we can sure that the init process is reading
