@@ -23,6 +23,7 @@ typedef char p_key_t[KSU_MAX_PACKAGE_NAME];
 bool set_app_profile(const struct app_profile *profile);
 
 int get_app_profile(struct app_profile *profile);
+bool get_app_states(struct ksu_app_state *states, uint32_t count);
 
 // Su compat
 bool set_su_enabled(bool enabled);

@@ -9,7 +9,7 @@ import ka.su.Natives
 data class AppInfo(
     val label: String,
     val packageInfo: PackageInfo,
-    val profile: Natives.Profile?,
+    val rootState: Int,
 ) : Parcelable {
     val packageName: String
         get() = packageInfo.packageName
@@ -18,7 +18,7 @@ data class AppInfo(
         get() = packageInfo.applicationInfo!!.uid
 
     val allowSu: Boolean
-        get() = profile?.allowSu == true
+        get() = (rootState and Natives.APP_STATE_ALLOW_SU) != 0
     val hasCustomProfile: Boolean
-        get() = allowSu && profile?.rootUseDefault == false
+        get() = (rootState and Natives.APP_STATE_CUSTOM) != 0
 }

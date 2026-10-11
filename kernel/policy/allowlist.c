@@ -333,6 +333,28 @@ bool ksu_get_allow_list(int *array, u16 length, u16 *out_length, u16 *out_total,
 	return true;
 }
 
+void ksu_get_app_states(struct ksu_app_state *states, u32 count)
+{
+	struct perm_data *p;
+	u32 i;
+
+	mutex_lock(&allowlist_mutex);
+	for (i = 0; i < count; i++) {
+		states[i].flags = 0;
+		hash_for_each_possible (allow_list, p, list, states[i].uid) {
+			if (p->profile.curr_uid == states[i].uid) {
+				if (p->profile.allow_su) {
+					states[i].flags = KSU_APP_STATE_ALLOW_SU;
+					if (!p->profile.rp_config.use_default)
+						states[i].flags |= KSU_APP_STATE_CUSTOM;
+				}
+				break;
+			}
+		}
+	}
+	mutex_unlock(&allowlist_mutex);
+}
+
 struct allowlist_snapshot {
 	u32 magic;
 	u32 version;

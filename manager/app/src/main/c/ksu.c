@@ -144,6 +144,14 @@ int get_app_profile(struct app_profile *profile) {
     return ret;
 }
 
+bool get_app_states(struct ksu_app_state *states, uint32_t count) {
+    struct ksu_get_app_states_cmd cmd = {
+        .states = (uintptr_t) states,
+        .count = count,
+    };
+    return ksuctl(KSU_IOCTL_GET_APP_STATES, &cmd) == 0;
+}
+
 bool set_su_enabled(bool enabled) {
     struct ksu_set_feature_cmd cmd = {0};
     cmd.feature_id = KSU_FEATURE_SU_COMPAT;

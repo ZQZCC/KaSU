@@ -68,7 +68,6 @@ static int do_report_event(const struct file *filp, void __user *arg)
 	case EVENT_POST_FS_DATA: {
 		static bool post_fs_data_lock = false;
 
-
 		// Reset for emulated soft reboot
 		services_started = false;
 		if (!post_fs_data_lock) {
@@ -524,6 +523,31 @@ static int do_disable_escape_to_root(const struct file *filp, void __user *arg)
 	return 0;
 }
 
+static int do_get_app_states(const struct file *filp, void __user *arg)
+{
+	struct ksu_get_app_states_cmd cmd;
+	struct ksu_app_state *states;
+	size_t size;
+	int ret = 0;
+
+	if (copy_from_user(&cmd, arg, sizeof(cmd)))
+		return -EFAULT;
+	if (cmd.count > KSU_APP_STATE_MAX_COUNT)
+		return -E2BIG;
+	if (!cmd.count)
+		return 0;
+
+	size = cmd.count * sizeof(*states);
+	states = memdup_user(u64_to_user_ptr(cmd.states), size);
+	if (IS_ERR(states))
+		return PTR_ERR(states);
+	ksu_get_app_states(states, cmd.count);
+	if (copy_to_user(u64_to_user_ptr(cmd.states), states, size))
+		ret = -EFAULT;
+	kfree(states);
+	return ret;
+}
+
 // IOCTL handlers mapping table
 static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
 	// GRANT_ROOT checks permission while acquiring the selected profile.
@@ -549,6 +573,7 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
 	{ .cmd = KSU_IOCTL_SET_INIT_PGRP, .name = "SET_INIT_PGRP", .handler = do_set_init_pgrp, .perm_check = only_root },
 	{ .cmd = KSU_IOCTL_GET_SULOG_FD, .name = "GET_SULOG_FD", .handler = do_get_sulog_fd, .perm_check = only_root },
 	{ .cmd = KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT, .name = "DISABLE_ESCAPE_TO_ROOT", .handler = do_disable_escape_to_root, .perm_check = only_root, .allow_su_session = true },
+	{ .cmd = KSU_IOCTL_GET_APP_STATES, .name = "GET_APP_STATES", .handler = do_get_app_states, .perm_check = only_manager },
 	{ .cmd = 0, .name = NULL, .handler = NULL, .perm_check = NULL } // Sentinel
 };
 
