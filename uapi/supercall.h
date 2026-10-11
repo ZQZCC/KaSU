@@ -10,7 +10,8 @@
 // 3: scoped su-session driver fd
 // 4: add KSU_GET_INFO_FLAG_BUNDLED
 // 5: add EVENT_SERVICES with a start/skip result
-static const __u32 KERNEL_SU_UAPI_VERSION = 5;
+// 6: batched app state queries and direct TinyFS control/su-session commands
+static const __u32 KERNEL_SU_UAPI_VERSION = 6;
 
 /* Magic numbers for reboot hook to install fd */
 static const __u32 KSU_INSTALL_MAGIC1 = 0xDEADBEEF;
@@ -140,6 +141,19 @@ struct ksu_get_sulog_fd_cmd {
     __u32 flags; /* Input: reserved for future use, must be 0 */
 };
 
+#define KSU_APP_STATE_ALLOW_SU (1U << 0)
+#define KSU_APP_STATE_CUSTOM (1U << 1)
+#define KSU_APP_STATE_MAX_COUNT 65535
+
+struct ksu_app_state {
+    __u32 uid;
+    __u32 flags;
+};
+
+struct ksu_get_app_states_cmd {
+    __aligned_u64 states; /* Input/Output: UID/state array, in request order. */
+    __u32 count;
+};
 
 /* IOCTL command definitions */
 static const __u32 KSU_IOCTL_GRANT_ROOT = _IOC(_IOC_NONE, 'K', 1, 0);
@@ -167,10 +181,6 @@ static const __u32 KSU_IOCTL_NUKE_EXT4_SYSFS = _IOC(_IOC_WRITE, 'K', 17, 0);
 static const __u32 KSU_IOCTL_SET_INIT_PGRP = _IO('K', 19);
 static const __u32 KSU_IOCTL_GET_SULOG_FD = _IOW('K', 20, struct ksu_get_sulog_fd_cmd);
 static const __u32 KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT = _IO('K', 21);
-
-
-/* TinyFS inode bootstrap; returns a new fd, not a driver command. */
-static const __u32 KSU_IOCTL_TINYFS_GET_SU_FD = _IO('K', 0xf0);
-static const __u32 KSU_IOCTL_TINYFS_GET_DRIVER_FD = _IO('K', 0xf1);
+static const __u32 KSU_IOCTL_GET_APP_STATES = _IOWR('K', 22, struct ksu_get_app_states_cmd);
 
 #endif

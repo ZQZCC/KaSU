@@ -30,6 +30,7 @@ bool ksu_get_allow_list(int *array, u16 length, u16 *out_length, u16 *out_total,
 void ksu_prune_allowlist(const struct path *system_dir);
 void ksu_persistent_allow_list();
 
+void ksu_get_app_states(struct ksu_app_state *states, u32 count);
 
 // should be called with rcu read lock
 struct app_profile *ksu_get_app_profile(uid_t uid);

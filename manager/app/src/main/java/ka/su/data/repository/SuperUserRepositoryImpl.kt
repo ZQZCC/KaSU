@@ -72,17 +72,18 @@ class SuperUserRepositoryImpl : SuperUserRepository {
                     iface.getPackages(0)
                 }
 
-                val packages = slice.list
-                val newApps = packages.filter {
+                val packages = slice.list.filter {
                     val ai = it.applicationInfo ?: return@filter false
                     (ai.flags and ApplicationInfo.FLAG_HAS_CODE) != 0
-                }.map {
-                    val appInfo = it.applicationInfo!!
-                    val profile = Natives.getAppProfile(it.packageName, appInfo.uid)
+                }
+                val states = checkNotNull(Natives.getAppStates(
+                    packages.map { it.applicationInfo!!.uid }.toIntArray()
+                )) { "Failed to query app states" }
+                val newApps = packages.mapIndexed { index, pkg ->
                     AppInfo(
-                        label = appInfo.loadLabel(pm).toString(),
-                        packageInfo = it,
-                        profile = profile,
+                        label = pkg.applicationInfo!!.loadLabel(pm).toString(),
+                        packageInfo = pkg,
+                        rootState = states[index],
                     )
                 }
 
@@ -100,9 +101,11 @@ class SuperUserRepositoryImpl : SuperUserRepository {
         runCatching {
             if (currentApps.isEmpty()) return@runCatching emptyList()
 
-            currentApps.map {
-                val profile = Natives.getAppProfile(it.packageName, it.uid)
-                it.copy(profile = profile)
+            val states = checkNotNull(Natives.getAppStates(
+                currentApps.map { it.uid }.toIntArray()
+            )) { "Failed to query app states" }
+            currentApps.mapIndexed { index, app ->
+                app.copy(rootState = states[index])
             }
         }
     }

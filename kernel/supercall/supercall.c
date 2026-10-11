@@ -1,100 +1,40 @@
-#define KSU_DRIVER_PERMISSION_SU_SESSION (1UL << 0)
-
 struct ksu_driver_context {
-	unsigned long permissions;
 	struct file *manager_dir;
 	struct dentry *manager_parent;
 };
 
-static void ksu_free_driver_context(struct ksu_driver_context *context)
+int ksu_open_driver(struct file *filp)
 {
-	if (context->manager_dir) {
-		dput(context->manager_parent);
-		fput(context->manager_dir);
-	}
-	kfree(context);
-}
+	struct file *directory = ksu_get_manager_directory(current_uid().val);
+	struct ksu_driver_context *context;
 
-static int anon_ksu_release(struct inode *inode, struct file *filp)
-{
-	ksu_free_driver_context(filp->private_data);
-	pr_info("ksu fd released\n");
+	if (IS_ERR(directory))
+		return PTR_ERR(directory);
+	if (!directory)
+		return 0;
+
+	context = kmalloc(sizeof(*context), GFP_KERNEL);
+	if (!context) {
+		fput(directory);
+		return -ENOMEM;
+	}
+	context->manager_dir = directory;
+	context->manager_parent = dget_parent(directory->f_path.dentry);
+	filp->private_data = context;
 	return 0;
 }
 
-static long anon_ksu_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+int ksu_release_driver(struct inode *inode, struct file *filp)
 {
-	return ksu_supercall_handle_ioctl(filp, cmd, (void __user *)arg);
-}
+	struct ksu_driver_context *context = filp->private_data;
 
-// File operations structure
-static const struct file_operations anon_ksu_fops = {
-	.owner = THIS_MODULE,
-	.unlocked_ioctl = anon_ksu_ioctl,
-	.compat_ioctl = anon_ksu_ioctl,
-	.release = anon_ksu_release,
-};
-
-// Install KSU fd to current process
-static int ksu_install_fd_with_permissions(unsigned int fd_flags, unsigned long permissions)
-{
-	struct ksu_driver_context *context;
-	struct file *filp;
-	const char *name;
-	int fd;
-
-	context = kzalloc(sizeof(*context), GFP_KERNEL);
-	if (!context)
-		return -ENOMEM;
-
-	context->manager_dir = ksu_get_manager_directory(current_uid().val);
-	if (IS_ERR(context->manager_dir)) {
-		int err = PTR_ERR(context->manager_dir);
-
+	if (context) {
+		dput(context->manager_parent);
+		fput(context->manager_dir);
 		kfree(context);
-		return err;
 	}
-	if (context->manager_dir)
-		context->manager_parent = dget_parent(context->manager_dir->f_path.dentry);
-	context->permissions = permissions;
-	name = permissions & KSU_DRIVER_PERMISSION_SU_SESSION ? "[ksu_driver_su]" : "[ksu_driver]";
-
-	fd = get_unused_fd_flags(fd_flags);
-	if (fd < 0) {
-		pr_err("ksu_install_fd: failed to get unused fd\n");
-		ksu_free_driver_context(context);
-		return fd;
-	}
-
-	filp = anon_inode_getfile(name, &anon_ksu_fops, context, O_RDWR);
-	if (IS_ERR(filp)) {
-		pr_err("ksu_install_fd: failed to create anon inode file\n");
-		put_unused_fd(fd);
-		ksu_free_driver_context(context);
-		return PTR_ERR(filp);
-	}
-
-	fd_install(fd, filp);
-	pr_info("ksu fd installed: %d for pid %d\n", fd, current->pid);
-	return fd;
-}
-
-int ksu_install_fd(void)
-{
-	return ksu_install_fd_with_permissions(O_CLOEXEC, 0);
-}
-
-int ksu_install_su_fd(void)
-{
-	// Preserve this descriptor across the launcher exec into ksud.
-	return ksu_install_fd_with_permissions(0, KSU_DRIVER_PERMISSION_SU_SESSION);
-}
-
-bool ksu_is_su_session_fd(const struct file *filp)
-{
-	const struct ksu_driver_context *context = filp->private_data;
-
-	return context && (context->permissions & KSU_DRIVER_PERMISSION_SU_SESSION);
+	pr_info("ksu fd released\n");
+	return 0;
 }
 
 bool ksu_is_manager_fd(const struct file *filp)
@@ -104,7 +44,7 @@ bool ksu_is_manager_fd(const struct file *filp)
 	struct inode *inode;
 	bool valid;
 
-	if (!context->manager_dir || !uid_eq(filp->f_cred->uid, current_uid()))
+	if (!context || !uid_eq(filp->f_cred->uid, current_uid()))
 		return false;
 
 	dentry = context->manager_dir->f_path.dentry;

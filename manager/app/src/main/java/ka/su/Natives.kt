@@ -53,6 +53,10 @@ object Natives {
      * @param key usually the package name
      * @return return null if failed.
      */
+    const val APP_STATE_ALLOW_SU = 1
+    const val APP_STATE_CUSTOM = 2
+
+    external fun getAppStates(uids: IntArray): IntArray?
     external fun getAppProfile(key: String?, uid: Int): Profile
     external fun setAppProfile(profile: Profile?): Boolean
 

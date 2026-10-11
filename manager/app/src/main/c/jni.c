@@ -4,6 +4,7 @@
 #include <pwd.h>
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "ksu.h"
 #include "logging.h"
@@ -107,6 +108,45 @@ static void fillArrayWithList(JNIEnv *env, jobject list, int *data, int count) {
         jobject integer = (*env)->CallObjectMethod(env, list, get, i);
         data[i] = (*env)->CallIntMethod(env, integer, intValue);
     }
+}
+
+JNIEXPORT jintArray JNICALL
+Java_ka_su_Natives_getAppStates(JNIEnv *env, jobject thiz, jintArray uids) {
+    jsize count = (*env)->GetArrayLength(env, uids);
+    if (count > KSU_APP_STATE_MAX_COUNT) {
+        return NULL;
+    }
+    jintArray result = (*env)->NewIntArray(env, count);
+    if (!result || !count) {
+        return result;
+    }
+    struct ksu_app_state *states = calloc(count, sizeof(*states));
+    if (!states) {
+        return NULL;
+    }
+    jint *values = (*env)->GetIntArrayElements(env, result, NULL);
+    if (!values) {
+        free(states);
+        return NULL;
+    }
+
+    // Reuse the result buffer for input UIDs until the query completes.
+    (*env)->GetIntArrayRegion(env, uids, 0, count, values);
+    bool success = false;
+    if (!(*env)->ExceptionCheck(env)) {
+        for (jsize i = 0; i < count; i++) {
+            states[i].uid = values[i];
+        }
+        success = get_app_states(states, count);
+        if (success) {
+            for (jsize i = 0; i < count; i++) {
+                values[i] = states[i].flags;
+            }
+        }
+    }
+    free(states);
+    (*env)->ReleaseIntArrayElements(env, result, values, success ? 0 : JNI_ABORT);
+    return success ? result : NULL;
 }
 
 JNIEXPORT jobject JNICALL

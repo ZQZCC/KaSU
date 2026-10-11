@@ -1,10 +1,5 @@
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
 #include <unistd.h>
@@ -13,65 +8,9 @@
 
 static int fd = -1;
 
-static int open_tinyfs_driver_fd(void) {
-    int control = open(KSU_TINYFS_CONTROL_PATH, O_RDONLY | O_CLOEXEC);
-    if (control < 0) {
-        return -1;
-    }
-    int driver = ioctl(control, KSU_IOCTL_TINYFS_GET_DRIVER_FD, 0);
-    close(control);
-    return driver;
-}
-
-static int scan_driver_fd(void) {
-    const char *kName = "[ksu_driver]";
-    DIR *dir = opendir("/proc/self/fd");
-    if (!dir) {
-        return -1;
-    }
-
-    int found = -1;
-    struct dirent *de;
-    char path[64];
-    char target[PATH_MAX];
-
-    while ((de = readdir(dir)) != NULL) {
-        if (de->d_name[0] == '.') {
-            continue;
-        }
-
-        char *endptr = NULL;
-        long fd_long = strtol(de->d_name, &endptr, 10);
-        if (!de->d_name[0] || *endptr != '\0' || fd_long < 0 || fd_long > INT_MAX) {
-            continue;
-        }
-
-        snprintf(path, sizeof(path), "/proc/self/fd/%s", de->d_name);
-        ssize_t n = readlink(path, target, sizeof(target) - 1);
-        if (n < 0) {
-            continue;
-        }
-        target[n] = '\0';
-
-        const char *base = strrchr(target, '/');
-        base = base ? base + 1 : target;
-
-        if (strstr(base, kName)) {
-            found = (int)fd_long;
-            break;
-        }
-    }
-
-    closedir(dir);
-    return found;
-}
-
 static int ksuctl(unsigned long op, void *arg) {
     if (fd < 0) {
-        fd = scan_driver_fd();
-        if (fd < 0) {
-            fd = open_tinyfs_driver_fd();
-        }
+        fd = open(KSU_TINYFS_CONTROL_PATH, O_RDONLY | O_CLOEXEC);
     }
 
     return ioctl(fd, op, arg);
@@ -142,6 +81,14 @@ int get_app_profile(struct app_profile *profile) {
     int ret = ksuctl(KSU_IOCTL_GET_APP_PROFILE, &cmd);
     *profile = cmd.profile;
     return ret;
+}
+
+bool get_app_states(struct ksu_app_state *states, uint32_t count) {
+    struct ksu_get_app_states_cmd cmd = {
+        .states = (uintptr_t) states,
+        .count = count,
+    };
+    return ksuctl(KSU_IOCTL_GET_APP_STATES, &cmd) == 0;
 }
 
 bool set_su_enabled(bool enabled) {

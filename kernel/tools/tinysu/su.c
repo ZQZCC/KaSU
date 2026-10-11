@@ -4,7 +4,6 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 
-#define KSU_IOCTL_TINYFS_GET_SU_FD _IO('K', 0xf0)
 #define KSU_IOCTL_GRANT_ROOT _IOC(_IOC_NONE, 'K', 1, 0)
 
 __attribute__((used))
@@ -16,15 +15,9 @@ void tinysu_main(long *stack)
 	const char *ksud = "/data/adb/ksud";
 	const char *shell = "/system/bin/sh";
 	int fd;
-	int su_fd;
 
 	argv[0] = "su";
-	su_fd = raw_syscall4(SYS_openat, AT_FDCWD, (long)"/system/bin/su",
-			     O_RDONLY | O_CLOEXEC, 0);
-	if (su_fd < 0)
-		goto fail;
-	fd = raw_syscall3(SYS_ioctl, su_fd, KSU_IOCTL_TINYFS_GET_SU_FD, 0);
-	raw_syscall3(SYS_close, su_fd, 0, 0);
+	fd = raw_syscall4(SYS_openat, AT_FDCWD, (long)"/system/bin/su", O_RDONLY, 0);
 	if (fd < 0)
 		goto fail;
 

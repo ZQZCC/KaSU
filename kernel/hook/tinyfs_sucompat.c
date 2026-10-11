@@ -2,8 +2,8 @@
 /*
  * Fixed-kernel TinyFS sucompat.
  *
- * Synthetic files expose a launcher and permission-checked fd bootstrap.
- * Root is granted by the normal KSU control fd, never from a VFS read.
+ * Synthetic files are the permission-checked launcher and control FDs.
+ * Root is granted by ioctl, never from a VFS read.
  */
 #include <linux/dcache.h>
 #include <linux/fs.h>
@@ -104,24 +104,26 @@ original_lookup:
 	return ksu_tinyfs_orig_bin_iops->lookup(dir, dentry, flags);
 }
 
+static int ksu_tinyfs_open(struct inode *inode, struct file *file)
+{
+	if (inode == ksu_tinyfs_su_inode) {
+		if (!ksu_tinyfs_check_su_access())
+			return -ENOENT;
+	} else if (current_uid().val && !is_manager()) {
+		return -ENOENT;
+	}
+	return ksu_open_driver(file);
+}
+
 static long ksu_tinyfs_ioctl(struct file *file, unsigned int cmd,
 			   unsigned long arg)
 {
-	/* Recheck the caller even if this file was opened or passed by another UID. */
-	switch (cmd) {
-	case KSU_IOCTL_TINYFS_GET_SU_FD:
-		if (file_inode(file) != ksu_tinyfs_su_inode ||
-		    !ksu_tinyfs_check_su_access())
-			return -EPERM;
-		return ksu_install_su_fd();
-	case KSU_IOCTL_TINYFS_GET_DRIVER_FD:
-		if (file_inode(file) != ksu_tinyfs_control_inode ||
-		    (current_uid().val && !is_manager()))
-			return -EPERM;
-		return ksu_install_fd();
-	default:
-		return -ENOTTY;
-	}
+	bool su_session = file_inode(file) == ksu_tinyfs_su_inode;
+
+	if (!su_session && current_uid().val && !ksu_is_manager_fd(file))
+		return -EPERM;
+	/* GRANT_ROOT rechecks the caller; session startup rights survive custom profiles. */
+	return ksu_supercall_handle_ioctl(file, cmd, (void __user *)arg, su_session);
 }
 
 static int ksu_tinyfs_read_folio(struct file *file, struct folio *folio)
@@ -149,16 +151,20 @@ static const struct address_space_operations ksu_tinyfs_aops = {
 };
 
 static const struct file_operations ksu_tinyfs_fops = {
+	.open = ksu_tinyfs_open,
 	.unlocked_ioctl = ksu_tinyfs_ioctl,
 	.compat_ioctl = ksu_tinyfs_ioctl,
+	.release = ksu_release_driver,
 	.read_iter = generic_file_read_iter,
 	.llseek = generic_file_llseek,
 	.mmap = generic_file_readonly_mmap,
 };
 
 static const struct file_operations ksu_tinyfs_control_fops = {
+	.open = ksu_tinyfs_open,
 	.unlocked_ioctl = ksu_tinyfs_ioctl,
 	.compat_ioctl = ksu_tinyfs_ioctl,
+	.release = ksu_release_driver,
 };
 
 static struct inode *ksu_tinyfs_new_inode(struct super_block *sb,

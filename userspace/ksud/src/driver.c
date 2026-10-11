@@ -36,11 +36,11 @@ static int scan_driver_fd(int *found)
 		if (length < 0)
 			continue;
 		target[length] = '\0';
-		if (!strcmp(target, "anon_inode:[ksu_driver_su]")) {
+		if (!strcmp(target, "/system/bin/su")) {
 			fd = (int)number;
 			break;
 		}
-		if (!strcmp(target, "anon_inode:[ksu_driver]"))
+		if (!strcmp(target, KSU_TINYFS_CONTROL_PATH))
 			fd = (int)number;
 	}
 	closedir(dir);
@@ -74,11 +74,7 @@ static void init_driver_fd(void)
 	if (driver_fd >= 0)
 		return;
 
-	int control = open(KSU_TINYFS_CONTROL_PATH, O_RDONLY | O_CLOEXEC);
-	if (control < 0)
-		return;
-	driver_fd = ioctl(control, KSU_IOCTL_TINYFS_GET_DRIVER_FD, 0);
-	close(control);
+	driver_fd = open(KSU_TINYFS_CONTROL_PATH, O_RDONLY | O_CLOEXEC);
 }
 
 int ksu_driver_fd(void)
