@@ -220,11 +220,6 @@ bool __ksu_is_allow_uid(uid_t uid)
 		return false;
 	}
 
-	if (unlikely(is_uid_manager(uid))) {
-		// manager is always allowed!
-		return true;
-	}
-
 	if (allow_shell && uid == SHELL_UID) {
 		return true;
 	}
@@ -238,7 +233,8 @@ bool __ksu_is_allow_uid(uid_t uid)
 	}
 	rcu_read_unlock();
 
-	return false;
+	// Manager is allowed even without an explicit app profile.
+	return is_uid_manager(uid);
 }
 
 bool __ksu_is_allow_uid_for_current(uid_t uid)
@@ -292,11 +288,10 @@ void ksu_put_app_profile(struct app_profile *profile)
 	put_perm_data(p);
 }
 
-static struct root_profile *get_root_profile(uid_t uid, bool check_allowed)
+static struct root_profile *get_root_profile(uid_t uid, bool check_allowed, bool manager)
 {
 	struct perm_data *p = NULL;
 	struct root_profile *res;
-	bool manager = is_uid_manager(uid);
 	bool allow_default = !check_allowed;
 
 	if (check_allowed && !manager) {
@@ -345,12 +340,12 @@ retry:
 
 struct root_profile *ksu_get_root_profile(uid_t uid)
 {
-	return get_root_profile(uid, false);
+	return get_root_profile(uid, false, is_uid_manager(uid));
 }
 
-struct root_profile *ksu_get_allowed_root_profile(uid_t uid)
+struct root_profile *ksu_get_allowed_root_profile(uid_t uid, bool manager)
 {
-	return get_root_profile(uid, true);
+	return get_root_profile(uid, true, manager);
 }
 
 void ksu_put_root_profile(struct root_profile *profile)

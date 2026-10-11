@@ -29,19 +29,29 @@ static struct file *ksu_open_manager_directory(uid_t uid)
 	return file;
 }
 
-bool is_uid_manager(uid_t uid)
+struct file *ksu_get_manager_directory(uid_t uid)
 {
 	struct file *file;
-	bool manager;
 
 	if (!uid)
-		return false;
+		return NULL;
 	file = ksu_open_manager_directory(uid);
 	if (IS_ERR(file))
-		return false;
-	manager = uid_eq(file_inode(file)->i_uid, KUIDT_INIT(uid));
+		return PTR_ERR(file) == -ENOENT ? NULL : file;
+	if (uid_eq(file_inode(file)->i_uid, KUIDT_INIT(uid)))
+		return file;
 	fput(file);
-	return manager;
+	return NULL;
+}
+
+bool is_uid_manager(uid_t uid)
+{
+	struct file *file = ksu_get_manager_directory(uid);
+
+	if (IS_ERR_OR_NULL(file))
+		return false;
+	fput(file);
+	return true;
 }
 
 uid_t ksu_get_manager_appid(void)

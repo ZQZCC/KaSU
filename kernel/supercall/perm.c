@@ -1,19 +1,19 @@
-bool only_manager(void)
+bool only_manager(const struct file *filp)
 {
-	return is_manager();
+	return ksu_is_manager_fd(filp);
 }
 
-bool only_root(void)
+bool only_root(const struct file *filp)
 {
 	return current_uid().val == 0;
 }
 
-bool manager_or_root(void)
+bool manager_or_root(const struct file *filp)
 {
-	return current_uid().val == 0 || is_manager();
+	return current_uid().val == 0 || ksu_is_manager_fd(filp);
 }
 
-bool always_allow(void)
+bool always_allow(const struct file *filp)
 {
 	return true;
 }

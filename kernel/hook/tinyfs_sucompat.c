@@ -43,7 +43,7 @@ static int ksu_tinyfs_d_revalidate(struct dentry *dentry, unsigned int flags)
 	if (inode == ksu_tinyfs_control_inode) {
 		if ((flags & LOOKUP_RCU) && current_uid().val)
 			return -ECHILD;
-		return manager_or_root() ? 1 : -ENOENT;
+		return (!current_uid().val || is_manager()) ? 1 : -ENOENT;
 	}
 
 	if (inode != ksu_tinyfs_su_inode)
@@ -84,7 +84,7 @@ static struct dentry *ksu_tinyfs_lookup(struct inode *dir,
 		if (!smp_load_acquire(&ksu_tinyfs_control_ready))
 			goto original_lookup;
 		inode = ksu_tinyfs_control_inode;
-		visible = manager_or_root();
+		visible = !current_uid().val || is_manager();
 	} else {
 		goto original_lookup;
 	}
@@ -110,7 +110,7 @@ static long ksu_tinyfs_ioctl(struct file *file, unsigned int cmd,
 		return ksu_install_su_fd();
 	case KSU_IOCTL_TINYFS_GET_DRIVER_FD:
 		if (file_inode(file) != ksu_tinyfs_control_inode ||
-		    !manager_or_root())
+		    (current_uid().val && !is_manager()))
 			return -EPERM;
 		return ksu_install_fd();
 	default:

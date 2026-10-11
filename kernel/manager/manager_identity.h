@@ -7,6 +7,7 @@
 void ksu_manager_identity_init(void);
 bool is_uid_manager(uid_t uid);
 uid_t ksu_get_manager_appid(void);
+struct file *ksu_get_manager_directory(uid_t uid);
 
 static inline bool is_manager()
 {

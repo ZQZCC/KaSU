@@ -2,8 +2,8 @@
 #define __KSU_H_SUPERCALL
 
 // IOCTL handler types
-typedef int (*ksu_ioctl_handler_t)(void __user *arg);
-typedef bool (*ksu_perm_check_t)(void);
+typedef int (*ksu_ioctl_handler_t)(const struct file *filp, void __user *arg);
+typedef bool (*ksu_perm_check_t)(const struct file *filp);
 
 // IOCTL command mapping
 struct ksu_ioctl_cmd_map {
@@ -19,6 +19,7 @@ int ksu_install_fd(void);
 // Install a KSU fd that authorizes operations required while starting su.
 int ksu_install_su_fd(void);
 bool ksu_is_su_session_fd(const struct file *filp);
+bool ksu_is_manager_fd(const struct file *filp);
 
 void ksu_supercalls_init(void);
 void ksu_supercalls_exit(void);
