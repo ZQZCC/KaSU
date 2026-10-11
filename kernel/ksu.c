@@ -34,7 +34,6 @@
 #include "policy/allowlist.h"
 #include "policy/feature.h"
 #include "manager/manager_identity.h"
-#include "manager/throne_tracker.h"
 #include "supercall/internal.h"
 #include "supercall/supercall.h"
 #include "infra/su_mount_ns.h"
@@ -65,7 +64,6 @@
 #include "policy/app_profile.c"
 #include "policy/feature.c"
 #include "manager/pkg_observer.c"
-#include "manager/throne_tracker.c"
 
 #include "supercall/perm.c"
 #include "supercall/dispatch.c"
@@ -165,8 +163,6 @@ static int __init kernelsu_init(void)
 	ksu_core_init();
 
 	ksu_allowlist_init();
-
-	ksu_throne_tracker_init();
 
 	ksu_ksud_init();
 

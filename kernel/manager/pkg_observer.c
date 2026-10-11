@@ -11,6 +11,8 @@
  *
  */
 
+#include <linux/workqueue.h>
+
 #ifdef CONFIG_KSU_TINYFS_PKG_OBSERVER
 
 #if defined(MODULE) || LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0) || \
@@ -22,6 +24,18 @@ static DEFINE_MUTEX(ksu_pkg_observer_mutex);
 static struct path ksu_pkg_system_path;
 static const struct inode_operations *ksu_pkg_orig_iops;
 static struct inode_operations ksu_pkg_iops;
+
+static void ksu_pkg_prune(struct work_struct *work)
+{
+	struct inode *dir = d_inode(ksu_pkg_system_path.dentry);
+
+	/* The filesystem callback precedes VFS d_move; wait for rename's unlock. */
+	inode_lock_shared(dir);
+	inode_unlock_shared(dir);
+	ksu_prune_allowlist(&ksu_pkg_system_path);
+}
+
+static DECLARE_WORK(ksu_pkg_prune_work, ksu_pkg_prune);
 
 static int ksu_pkg_rename(struct user_namespace *mnt_userns,
 			  struct inode *old_dir, struct dentry *old_dentry,
@@ -38,16 +52,16 @@ static int ksu_pkg_rename(struct user_namespace *mnt_userns,
 					new_dir, new_dentry, flags);
 
 	if (!ret && observe)
-		track_throne();
+		schedule_work(&ksu_pkg_prune_work);
 	return ret;
 }
 
-static void ksu_pkg_observer_init(void)
+static bool ksu_pkg_observer_init(void)
 {
 	struct path path;
 	struct inode *dir;
 	const struct inode_operations *iops;
-	int ret;
+	int ret = 0;
 
 	mutex_lock(&ksu_pkg_observer_mutex);
 	if (ksu_pkg_orig_iops)
@@ -87,106 +101,7 @@ failed:
 	pr_err("pkg_observer: cannot watch /data/system: %d\n", ret);
 out:
 	mutex_unlock(&ksu_pkg_observer_mutex);
-}
-
-#else
-
-/*
- * ! this is on inode_rename, NOT fsnotify
- * we have access to LSM and overhead is way lower.
- * we watch one file, check ifs on the same parent inode.
- * a few int compare and a ptr compare. thats it.
- * as for throne tracker, we just async it by hand
- * by offloading it to a kthread.
- * reuses code from: https://github.com/tiann/KernelSU/blob/v1.0.5/kernel/core_hook.c#L188
- */
-
-static void *system_dir_inode_ptr = nullptr;
-
-static noinline void ksu_grab_data_system_inode()
-{
-	struct path path;
-	int ret = kern_path("/data/system", LOOKUP_FOLLOW, &path);
-	if (ret) {
-		pr_info("renameat: /data/system not ready? ret: (%d)\n", ret);
-		return;
-	}
-
-	system_dir_inode_ptr = (void *)d_inode(path.dentry);
-	pr_info("renameat: cached /data/system d_inode: 0x%lx\n", system_dir_inode_ptr);
-	path_put(&path);
-}
-
-static void ksu_rename_observer_slow(struct dentry *old_dentry, struct dentry *new_dentry)
-{
-	system_dir_inode_ptr = nullptr; // reset cached inode
-
-	char path[128];
-	char *buf = dentry_path_raw(new_dentry, path, sizeof(path) - 1);
-	if (IS_ERR(buf)) {
-		pr_err("dentry_path_raw failed.\n");
-		return;
-	}
-
-	if (!strnstr(buf, "/system/packages.list", 128))
-		return;
-
-	pr_info("renameat: %s -> %s, new path: %s\n", old_dentry->d_iname, new_dentry->d_iname, buf);
-	track_throne();
-	return;
-}
-
-static inline void ksu_rename_observer(struct dentry *old_dentry, struct dentry *new_dentry)
-{
-	// skip kernel threads
-	if (!current->mm)
-		return;
-
-	if (!old_dentry || !new_dentry)
-		return;
-
-	// skip non system uid
-	if (likely(current_uid().val != 1000))
-		return;
-
-	constexpr unsigned char plist[] = "packages.list";
-
-	// HASH_LEN_DECLARE see dcache.h
-	if (likely(new_dentry->d_name.len != sizeof(plist) - 1  ))
-		return;
-
-	// /data/system/packages.list.tmp -> /data/system/packages.list
-	if (likely(!!memcmp_inline(new_dentry->d_iname, plist, sizeof(plist) - 1 )))
-		return;
-
-	// cache dir inode, we try to go for fast path, lockless
-	if (unlikely(!system_dir_inode_ptr))
-		ksu_grab_data_system_inode();
-
-	if (unlikely(!system_dir_inode_ptr))
-		goto slow_path;
-
-	if (unlikely(!new_dentry->d_parent || !new_dentry->d_parent->d_inode))
-		goto slow_path;
-
-	/*
-	 * fallback to slow path, but this should NOT change unless someone overlays /data/system
-	 * but then again maybe https://github.com/tiann/KernelSU/pull/2633#discussion_r2141740346
-	 * but /data is casefolded, overlaying is really really unlikely
-	 * we self heal this thing, so on enxt run, it will try to grab d inode again
-	 * alternatively we can use packages.list inode change as trigger too, however,
-	 * we need to save last state. more writes.
-	 */
-	if (unlikely((void *)new_dentry->d_parent->d_inode != system_dir_inode_ptr))
-		goto slow_path;
-
-	pr_info("renameat: %s -> %s, /data/system d_inode: 0x%lx \n", old_dentry->d_iname, new_dentry->d_iname, system_dir_inode_ptr);
-	track_throne();
-	return;
-
-slow_path:
-	ksu_rename_observer_slow(old_dentry, new_dentry);
-	return;
+	return !ret;
 }
 
 #endif

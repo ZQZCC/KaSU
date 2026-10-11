@@ -96,9 +96,9 @@ void on_boot_completed(void)
 	ksu_boot_completed = true;
 	pr_info("on_boot_completed!\n");
 #ifdef CONFIG_KSU_TINYFS_PKG_OBSERVER
-	ksu_pkg_observer_init();
+	if (ksu_pkg_observer_init())
+		schedule_work(&ksu_pkg_prune_work);
 #endif
-	track_throne();
 
 }
 

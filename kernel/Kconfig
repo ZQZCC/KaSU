@@ -33,7 +33,6 @@ config KSU_TINYFS_NO_SETUID
 config KSU_TINYFS_PKG_OBSERVER
 	bool
 	depends on KSU_TINYFS_NO_SETUID
-	depends on KSU_THRONE_TRACKER_ALWAYS_THREADED
 	default y
 	help
 	  For fixed built-in Linux 6.1 TinyFS/NoMount kernels only. Replace the
@@ -42,6 +41,7 @@ config KSU_TINYFS_PKG_OBSERVER
 	  The directory must remain in place for the lifetime of the kernel;
 	  cross-directory imports and replacing or overlaying /data/system are
 	  not supported. Initialization is retried at boot completion.
+	  A shared work item cleans stale app profiles from packages.list.
 
 config KSU_FEATURE_SULOG
 	bool "KernelSU SU Logging feature"
@@ -49,14 +49,6 @@ config KSU_FEATURE_SULOG
 	default y
 	help
 	  Build KernelSU's SU Log.
-
-config KSU_THRONE_TRACKER_ALWAYS_THREADED
-	bool
-	depends on KSU
-	default y
-	help
-	  Run package allowlist pruning in a kthread, including its first scan.
-	  Manager authentication does not depend on the tracker.
 
 config KSU_NOPRINTK
 	bool "disable ALL dmesg logging"

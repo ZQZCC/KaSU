@@ -636,10 +636,92 @@ exit:
 	filp_close(fp, 0);
 }
 
-void ksu_prune_allowlist(bool (*is_uid_valid)(uid_t, char *, void *), void *data)
+static char *read_packages_list(const struct path *system_dir)
+{
+	const struct cred *saved = override_creds(ksu_cred);
+	struct file *file;
+	char *packages = NULL, *cursor;
+	loff_t size, pos = 0;
+	int error = 0;
+
+	file = file_open_root(system_dir, "packages.list", O_RDONLY, 0);
+	if (IS_ERR(file)) {
+		error = PTR_ERR(file);
+		goto out_creds;
+	}
+
+	size = i_size_read(file_inode(file));
+	if (size < 0 || (u64)size >= SIZE_MAX) {
+		error = -EFBIG;
+		goto out_file;
+	}
+	packages = kvmalloc(size + 1, GFP_KERNEL);
+	if (!packages) {
+		error = -ENOMEM;
+		goto out_file;
+	}
+	while (pos < size) {
+		ssize_t count = kernel_read(file, packages + pos, size - pos, &pos);
+
+		if (count <= 0) {
+			error = count < 0 ? count : -EIO;
+			goto out_file;
+		}
+	}
+	packages[size] = '\0';
+	if (i_size_read(file_inode(file)) != size ||
+	    (size && packages[size - 1] != '\n') || memchr(packages, '\0', size)) {
+		error = -EINVAL;
+		goto out_file;
+	}
+
+	/* Tokenize in place; no installed-package objects survive the scan. */
+	cursor = packages;
+	while (cursor < packages + size) {
+		char *line = strsep(&cursor, "\n");
+		char *package = strsep(&line, " ");
+		char *uid = strsep(&line, " ");
+		u32 appid;
+
+		if (!*package || !uid || !line || kstrtou32(uid, 10, &appid)) {
+			error = -EINVAL;
+			goto out_file;
+		}
+	}
+out_file:
+	filp_close(file, NULL);
+out_creds:
+	revert_creds(saved);
+	if (error) {
+		kvfree(packages);
+		return ERR_PTR(error);
+	}
+	return packages;
+}
+
+static bool package_is_installed(uid_t uid, const char *package, char *packages)
+{
+	char *name = packages;
+
+	while (*name) {
+		char *uid_text = name + strlen(name) + 1;
+		char *rest = uid_text + strlen(uid_text) + 1;
+		u32 appid;
+
+		if (!strcmp(name, package) && !kstrtou32(uid_text, 10, &appid) &&
+		    appid == uid % PER_USER_RANGE)
+			return true;
+		name = rest + strlen(rest) + 1;
+	}
+	return false;
+}
+
+void ksu_prune_allowlist(const struct path *system_dir)
 {
 	struct perm_data *np = NULL;
 	struct hlist_node *tmp;
+	char *packages;
+	bool modified = false;
 	int i;
 
 	if (!ksu_boot_completed) {
@@ -647,14 +729,21 @@ void ksu_prune_allowlist(bool (*is_uid_valid)(uid_t, char *, void *), void *data
 		return;
 	}
 
-	bool modified = false;
+	/* Serialize snapshot acquisition with profile updates, not just deletion. */
 	mutex_lock(&allowlist_mutex);
+	if (!allow_list_count)
+		goto out_unlock;
+	packages = read_packages_list(system_dir);
+	if (IS_ERR(packages)) {
+		pr_err("packages.list: cleanup skipped: %ld\n", PTR_ERR(packages));
+		goto out_unlock;
+	}
 	hash_for_each_safe (allow_list, i, tmp, np, list) {
 		uid_t uid = np->profile.curr_uid;
 		char *package = np->profile.key;
 		// we use this uid for special cases, don't prune it!
 		bool is_preserved_uid = uid == KSU_APP_PROFILE_PRESERVE_UID || uid == WEBVIEW_ZYGOTE_UID;
-		if (!is_preserved_uid && !is_uid_valid(uid, package, data)) {
+		if (!is_preserved_uid && !package_is_installed(uid, package, packages)) {
 			modified = true;
 			pr_info("prune uid: %d, package: %s\n", uid, package);
 			hlist_del_rcu(&np->list);
@@ -662,6 +751,8 @@ void ksu_prune_allowlist(bool (*is_uid_valid)(uid_t, char *, void *), void *data
 			--allow_list_count;
 		}
 	}
+	kvfree(packages);
+out_unlock:
 	mutex_unlock(&allowlist_mutex);
 
 	if (modified) {

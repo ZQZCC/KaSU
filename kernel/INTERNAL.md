@@ -42,14 +42,11 @@
 - we also reuse this seccomp status as sucompat gate
 - we do this regardless of kernel version
 
-## pkg_observer is on inode_rename LSM
-- upstream was on this before
-- this is faster, we filter uid
-- we dont watch a full folder for shit
-#### throne_tracker
-- first run is synchronous by default due to FDE/FBEv1 (some)
-- kthreaded on successive runs
-- lock contention/double locking and race conditions are handled
+## Package authorization cleanup
+- Observe successful packages.list replacements through /data/system's inode callback.
+- One static work item waits for VFS rename completion, then reads a temporary text snapshot.
+- Prune only after a complete valid read, serialized with app-profile updates.
+- Keep no installed-package database; ordinary authorization remains a UID hash lookup.
 
 ## security_file_permission LSM
 - we use this to avoid hooking sys_read for manual hooks
