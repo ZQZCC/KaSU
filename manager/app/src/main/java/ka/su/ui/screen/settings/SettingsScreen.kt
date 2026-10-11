@@ -45,12 +45,10 @@ fun SettingPager(
         onOpenTheme = { navigator.push(Route.ColorPalette) },
         onOpenProfileTemplate = { navigator.push(Route.AppProfileTemplate) },
         onSetSuCompatMode = viewModel::setSuCompatMode,
-        onSetKernelUmountEnabled = viewModel::setKernelUmountEnabled,
         onSetSelinuxHideEnabled = viewModel::setSelinuxHideEnabled,
         onSetHideBootloaderEnabled = viewModel::setHideBootloaderEnabled,
         onSetSulogEnabled = viewModel::setSulogEnabled,
         onSetAdbRootEnabled = viewModel::setAdbRootEnabled,
-        onSetDefaultUmountModules = viewModel::setDefaultUmountModules,
         onSetEnableWebDebugging = viewModel::setEnableWebDebugging,
         onSetUseSoftReboot = viewModel::setUseSoftReboot,
     )

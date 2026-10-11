@@ -52,8 +52,6 @@ class SettingsViewModel(
 
             val suCompatMode = if (suCompatPersistValue == 0L) 2 else if (!isSuEnabled) 1 else 0
 
-            val kernelUmountStatus = repo.getKernelUmountStatus()
-            val isKernelUmountEnabled = repo.isKernelUmountEnabled()
             val selinuxHideStatus = repo.getSelinuxHideStatus()
             val isSelinuxHideEnabled = repo.isSelinuxHideEnabled()
             val hideBootloaderValue = repo.getHideBootloaderValue()
@@ -61,7 +59,6 @@ class SettingsViewModel(
             val isSulogEnabled = repo.getSulogPersistValue() == 1L
             val adbRootStatus = repo.getAdbRootStatus()
             val isAdbRootEnabled = repo.getAdbRootPersistValue() == 1L
-            val isDefaultUmountModules = repo.isDefaultUmountModules()
 
             _uiState.update {
                 readPreferences().copy(
@@ -71,14 +68,11 @@ class SettingsViewModel(
                     isSuEnabled = isSuEnabled,
                     adbRootStatus = adbRootStatus,
                     isAdbRootEnabled = isAdbRootEnabled,
-                    kernelUmountStatus = kernelUmountStatus,
-                    isKernelUmountEnabled = isKernelUmountEnabled,
                     selinuxHideStatus = selinuxHideStatus,
                     isSelinuxHideEnabled = isSelinuxHideEnabled,
                     isHideBootloaderEnabled = hideBootloaderValue?.let { it == 1L },
                     sulogStatus = sulogStatus,
                     isSulogEnabled = isSulogEnabled,
-                    isDefaultUmountModules = isDefaultUmountModules,
                 )
             }
         }
@@ -162,15 +156,6 @@ class SettingsViewModel(
         }
     }
 
-    fun setKernelUmountEnabled(enabled: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
-            if (repo.setKernelUmountEnabled(enabled)) {
-                repo.execKsudFeatureSave()
-                _uiState.update { it.copy(isKernelUmountEnabled = enabled) }
-            }
-        }
-    }
-
     fun setSelinuxHideEnabled(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             val status = repo.setSelinuxHideEnabled(enabled)
@@ -234,11 +219,4 @@ class SettingsViewModel(
         }
     }
 
-    fun setDefaultUmountModules(enabled: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
-            if (repo.setDefaultUmountModules(enabled)) {
-                _uiState.update { it.copy(isDefaultUmountModules = enabled) }
-            }
-        }
-    }
 }

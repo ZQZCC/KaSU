@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #define _GNU_SOURCE
+#include "uapi/feature.h"
 #include "driver.h"
 #include "file.h"
 #include "native.h"
@@ -22,13 +23,13 @@
 static const struct {
 	const char *name, *description;
 } features[] = {
-    {"su_compat",
-     "SU Compatibility Mode - allows authorized apps to gain root via traditional 'su' command"},
-    {"kernel_umount",
-     "Kernel Umount - controls whether kernel automatically unmounts modules when not needed"},
-    {"sulog", "SU Log - streams kernel sulog events to userspace and persists them to disk"},
-    {"adb_root", "ADB Root - Enable adbd root"},
-    {"selinux_hide", "SELinux Hide - sanitize /sys/fs/selinux access results for app UIDs"},
+    [KSU_FEATURE_SU_COMPAT] = {"su_compat", "SU Compatibility Mode - allows authorized apps to "
+					    "gain root via traditional 'su' command"},
+    [KSU_FEATURE_SULOG] =
+	{"sulog", "SU Log - streams kernel sulog events to userspace and persists them to disk"},
+    [KSU_FEATURE_ADB_ROOT] = {"adb_root", "ADB Root - Enable adbd root"},
+    [KSU_FEATURE_SELINUX_HIDE] =
+	{"selinux_hide", "SELinux Hide - sanitize /sys/fs/selinux access results for app UIDs"},
 };
 
 struct feature_value {
@@ -43,9 +44,9 @@ struct feature_config {
 static int feature_id(const unsigned char *name, size_t length)
 {
 	for (size_t i = 0; i < sizeof(features) / sizeof(features[0]); ++i)
-		if ((length == strlen(features[i].name) &&
-		     !memcmp(name, features[i].name, length)) ||
-		    (length == 1 && *name == '0' + i))
+		if (features[i].name && ((length == strlen(features[i].name) &&
+					  !memcmp(name, features[i].name, length)) ||
+					 (length == 1 && *name == '0' + i)))
 			return (int)i;
 	return -1;
 }
@@ -71,7 +72,7 @@ static int set_feature(uint32_t id, uint64_t value)
 	struct ksu_set_feature_cmd cmd = {.feature_id = id, .value = value};
 	if (ksu_ioctl(KSU_IOCTL_SET_FEATURE, &cmd) < 0)
 		return -1;
-	if (id == 2 && value)
+	if (id == KSU_FEATURE_SULOG && value)
 		ksu_ensure_sulogd();
 	return 0;
 }
@@ -176,9 +177,10 @@ static void apply_config(const struct feature_config *config)
 		const struct feature_value *entry = config->entries + i;
 		char number[11];
 		snprintf(number, sizeof(number), "%u", entry->id);
-		const char *label = entry->id < sizeof(features) / sizeof(features[0])
-					? features[entry->id].name
-					: number;
+		const char *label =
+		    entry->id < sizeof(features) / sizeof(features[0]) && features[entry->id].name
+			? features[entry->id].name
+			: number;
 		if (!set_feature(entry->id, entry->value)) {
 			++applied;
 			__android_log_print(ANDROID_LOG_INFO, "KernelSU",
@@ -220,6 +222,8 @@ static int save_kernel_features(const char *directory, const char *path)
 	struct feature_value states[sizeof(features) / sizeof(features[0])];
 	struct feature_config config = {.entries = states};
 	for (uint32_t i = 0; i < sizeof(features) / sizeof(features[0]); ++i) {
+		if (!features[i].name)
+			continue;
 		bool supported;
 		uint64_t value;
 		if (!get_feature(i, &value, &supported) && supported) {
@@ -295,6 +299,8 @@ int ksu_feature_run(enum ksu_feature_command command, const char *name, uint64_t
 			putchar('=');
 		putchar('\n');
 		for (uint32_t i = 0; i < sizeof(features) / sizeof(features[0]); ++i) {
+			if (!features[i].name)
+				continue;
 			bool supported = false, owned = false;
 			value = 0;
 			(void)get_feature(i, &value, &supported);

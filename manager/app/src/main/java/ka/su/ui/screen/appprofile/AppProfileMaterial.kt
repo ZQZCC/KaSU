@@ -69,7 +69,6 @@ import ka.su.ui.component.material.SegmentedColumn
 import ka.su.ui.component.material.SegmentedListItem
 import ka.su.ui.component.material.SegmentedSwitchItem
 import ka.su.ui.component.material.SnackBarHost
-import ka.su.ui.component.profile.AppProfileConfig
 import ka.su.ui.component.profile.RootProfileConfig
 import ka.su.ui.component.profile.TemplateConfig
 import ka.su.ui.component.statustag.StatusTag
@@ -98,7 +97,6 @@ fun AppProfileScreenMaterial(
                 onBack = actions.onBack,
                 scrollBehavior = scrollBehavior,
                 isUidGroup = state.isUidGroup,
-                showActions = !state.appGroup.primary.isWebViewZygote,
                 packageName = state.packageName,
                 userId = state.uid / 100000,
                 onLaunchApp = actions.onLaunchApp,
@@ -119,7 +117,7 @@ fun AppProfileScreenMaterial(
             packageName = if (state.isUidGroup) {
                 ""
             } else {
-                state.appGroup.primary.displayIdentifier
+                state.appGroup.primary.packageName
             },
             appLabel = if (state.isUidGroup) ownerNameForUid(state.appGroup.primary.uid) else state.appGroup.primary.label,
             appIcon = {
@@ -142,7 +140,6 @@ fun AppProfileScreenMaterial(
             },
             profile = state.profile,
             isUidGroup = state.isUidGroup,
-            isSpecialApp = state.appGroup.primary.special,
             affectedApps = state.appGroup.apps,
             onViewTemplate = actions.onViewTemplate,
             onManageTemplate = actions.onManageTemplate,
@@ -163,13 +160,12 @@ private fun AppProfileInner(
     appVersionCode: Long,
     profile: Natives.Profile,
     isUidGroup: Boolean = false,
-    isSpecialApp: Boolean = false,
     affectedApps: List<SuperUserViewModel.AppInfo> = emptyList(),
     onViewTemplate: (id: String) -> Unit = {},
     onManageTemplate: () -> Unit = {},
     onProfileChange: (Natives.Profile) -> Unit,
 ) {
-    val isRootGranted = !isSpecialApp && profile.allowSu
+    val isRootGranted = profile.allowSu
     val userId = appUid / 100000
     val appId = appUid % 100000
 
@@ -183,8 +179,7 @@ private fun AppProfileInner(
     var rootMode by rememberSaveable(profile) {
         mutableStateOf(initialRootMode)
     }
-    val nonRootMode = if (profile.nonRootUseDefault) Mode.Default else Mode.Custom
-    val mode = if (isRootGranted) rootMode else nonRootMode
+    val mode = rootMode
 
     Column(modifier = modifier) {
         SegmentedColumn(
@@ -197,9 +192,7 @@ private fun AppProfileInner(
                         headlineContent = { Text(appLabel) },
                         supportingContent = {
                             Column {
-                                if (isSpecialApp) {
-                                    Text(packageName, color = MaterialTheme.colorScheme.outline)
-                                } else if (!isUidGroup) {
+                                if (!isUidGroup) {
                                     Text("$appVersionName ($appVersionCode)", color = MaterialTheme.colorScheme.outline)
                                     Text(packageName, color = MaterialTheme.colorScheme.outline)
                                 } else {
@@ -238,7 +231,7 @@ private fun AppProfileInner(
                         }
                     )
                 }
-                if (!isSpecialApp) add {
+                add {
                     SegmentedSwitchItem(
                         icon = Icons.Filled.Security,
                         title = stringResource(id = R.string.superuser),
@@ -246,7 +239,7 @@ private fun AppProfileInner(
                         onCheckedChange = { onProfileChange(profile.copy(allowSu = it)) },
                     )
                 }
-                add {
+                if (isRootGranted) add {
                     SegmentedListItem(
                         headlineContent = { Text(stringResource(R.string.profile)) },
                         supportingContent = { Text(mode.text, color = MaterialTheme.colorScheme.outline) },
@@ -261,7 +254,7 @@ private fun AppProfileInner(
                 modifier = Modifier.padding(bottom = 6.dp + 48.dp + 6.dp /* SnackBar height */)
             ) {
                 if (current) {
-                    ProfileBox(mode, true) {
+                    ProfileBox(mode) {
                         // template mode shouldn't change profile here!
                         if (it == Mode.Default || it == Mode.Custom) {
                             onProfileChange(
@@ -297,29 +290,13 @@ private fun AppProfileInner(
                             onProfileChange = onProfileChange
                         )
                     }
-                } else {
-                    ProfileBox(mode, false) {
-                        onProfileChange(profile.copy(nonRootUseDefault = (it == Mode.Default)))
-                    }
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
-                    ) {
-                        AppProfileConfig(
-                            fixedName = true,
-                            profile = profile,
-                            enabled = mode == Mode.Custom,
-                            onProfileChange = onProfileChange
-                        )
-                    }
                 }
                 if (isUidGroup) {
                     val appItems = affectedApps.map<SuperUserViewModel.AppInfo, @Composable () -> Unit> { app ->
                         {
                             SegmentedListItem(
                                 headlineContent = { Text(app.label) },
-                                supportingContent = { Text(app.displayIdentifier) },
+                                supportingContent = { Text(app.packageName) },
                                 leadingContent = {
                                     AppIconImage(
                                         packageInfo = app.packageInfo,
@@ -346,7 +323,6 @@ private fun TopBar(
     onBack: () -> Unit,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     isUidGroup: Boolean = false,
-    showActions: Boolean = true,
     packageName: String = "",
     userId: Int = 0,
     onLaunchApp: (String, Int) -> Unit,
@@ -362,7 +338,7 @@ private fun TopBar(
             ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
         },
         actions = {
-            if (!isUidGroup && showActions) {
+            if (!isUidGroup) {
                 var showDropdown by remember { mutableStateOf(false) }
 
                 IconButton(
@@ -418,7 +394,6 @@ private fun TopBar(
 @Composable
 private fun ProfileBox(
     mode: Mode,
-    hasTemplate: Boolean,
     onModeChange: (Mode) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
@@ -438,12 +413,11 @@ private fun ProfileBox(
             ToggleButton(
                 checked = mode == m,
                 onCheckedChange = { checked ->
-                    if (checked && (m != Mode.Template || hasTemplate)) {
+                    if (checked) {
                         haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                         onModeChange(m)
                     }
                 },
-                enabled = if (m == Mode.Template) hasTemplate else true,
                 modifier = Modifier
                     .weight(1f)
                     .semantics { role = Role.RadioButton },

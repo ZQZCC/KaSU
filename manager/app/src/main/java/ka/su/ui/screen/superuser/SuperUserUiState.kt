@@ -14,7 +14,6 @@ data class GroupedApps(
     val primary: AppInfo,
     val anyAllowSu: Boolean,
     val anyCustom: Boolean,
-    val shouldUmount: Boolean,
     val ownerName: String? = null,
     val matchedIdentifiers: Set<String> = emptySet(),
 )

@@ -131,13 +131,6 @@ bool is_pr_build(void) {
     return false;
 }
 
-bool uid_should_umount(int uid) {
-    struct ksu_uid_should_umount_cmd cmd = {0};
-    cmd.uid = uid;
-    ksuctl(KSU_IOCTL_UID_SHOULD_UMOUNT, &cmd);
-    return cmd.should_umount;
-}
-
 bool set_app_profile(const struct app_profile *profile) {
     struct ksu_set_app_profile_cmd cmd = {0};
     cmd.profile = *profile;
@@ -186,27 +179,6 @@ static inline bool set_feature(uint32_t feature_id, uint64_t value) {
     cmd.feature_id = feature_id;
     cmd.value = value;
     return ksuctl(KSU_IOCTL_SET_FEATURE, &cmd) == 0;
-}
-
-bool set_kernel_umount_enabled(bool enabled) {
-    return set_feature(KSU_FEATURE_KERNEL_UMOUNT, enabled ? 1 : 0);
-}
-
-bool is_kernel_umount_enabled(void) {
-    uint64_t value = 0;
-    bool supported = false;
-    if (!get_feature(KSU_FEATURE_KERNEL_UMOUNT, &value, &supported)) {
-        return false;
-    }
-    if (!supported) {
-        return false;
-    }
-    return value != 0;
-}
-
-bool is_kernel_umount_supported(void) {
-    bool supported = false;
-    return get_feature(KSU_FEATURE_KERNEL_UMOUNT, NULL, &supported) && supported;
 }
 
 int set_selinux_hide_enabled(bool enabled) {

@@ -4,7 +4,6 @@
 #include "app_profile.h"
 
 #define PER_USER_RANGE 100000
-#define WEBVIEW_ZYGOTE_UID 1053
 #define FIRST_APPLICATION_UID 10000
 #define LAST_APPLICATION_UID 19999
 #define FIRST_ISOLATED_UID 99000
@@ -38,7 +37,6 @@ struct app_profile *ksu_get_app_profile(uid_t uid);
 void ksu_put_app_profile(struct app_profile *);
 int ksu_set_app_profile(struct app_profile *);
 
-bool ksu_uid_should_umount(uid_t uid);
 struct root_profile *ksu_get_root_profile(uid_t uid);
 // Authorize the current UID and acquire its selected root profile in one lookup.
 struct root_profile *ksu_get_allowed_root_profile(uid_t uid, bool manager);

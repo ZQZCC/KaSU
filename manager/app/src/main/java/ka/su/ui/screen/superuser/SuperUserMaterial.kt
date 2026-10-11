@@ -417,7 +417,7 @@ private fun SearchGroupItem(
                 group.apps.forEach { app ->
                     SimpleAppItem(
                         app = app,
-                        matched = group.matchedIdentifiers.contains(app.displayIdentifier),
+                        matched = group.matchedIdentifiers.contains(app.packageName),
                     ) {
                         closeSearch()
                         onOpenProfile(group)
@@ -445,7 +445,7 @@ private fun SimpleAppItem(
             }
         ),
         content = { Text(app.label, overflow = TextOverflow.Ellipsis, maxLines = 1) },
-        supportingContent = { Text(app.displayIdentifier, overflow = TextOverflow.Ellipsis, maxLines = 1) },
+        supportingContent = { Text(app.packageName, overflow = TextOverflow.Ellipsis, maxLines = 1) },
         leadingContent = {
             AppIconImage(
                 packageInfo = app.packageInfo,
@@ -474,18 +474,15 @@ private fun GroupItem(
 ) {
     val bg = colorScheme.primary
     val fg = colorScheme.onPrimary
-    val umountBg = colorScheme.secondary
-    val umountFg = colorScheme.onSecondary
     val customBg = colorScheme.secondaryContainer
     val customFg = colorScheme.onSecondaryContainer
     val otherBg = colorScheme.tertiary
     val otherFg = colorScheme.onTertiary
 
     val userId = group.uid / 100000
-    val tags = remember(group.anyAllowSu, group.shouldUmount, group.anyCustom, userId) {
+    val tags = remember(group.anyAllowSu, group.anyCustom, userId) {
         buildList {
             if (group.anyAllowSu) add(StatusMeta("ROOT", bg, fg))
-            if (group.shouldUmount) add(StatusMeta("UMOUNT", umountBg, umountFg))
             if (group.anyCustom) add(StatusMeta("CUSTOM", customBg, customFg))
             if (userId != 0) add(StatusMeta("USER $userId", otherBg, otherFg))
         }
@@ -493,7 +490,7 @@ private fun GroupItem(
     val summaryText = if (group.apps.size > 1) {
         stringResource(R.string.group_contains_apps, group.apps.size)
     } else {
-        group.primary.displayIdentifier
+        group.primary.packageName
     }
     SegmentedListItem(
         selected = selected,

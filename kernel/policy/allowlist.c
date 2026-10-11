@@ -1,14 +1,12 @@
 #define FILE_MAGIC 0x7f4b5355 // ' KSU', u32
 #define FILE_FORMAT_VERSION 4 // u32
 
-#define KSU_APP_PROFILE_PRESERVE_UID 9999 // NOBODY_UID
 #define KSU_DEFAULT_SELINUX_DOMAIN "u:r:" KERNEL_SU_DOMAIN ":s0"
 
 static DEFINE_MUTEX(allowlist_mutex);
 
 // default profiles, these may be used frequently, so we cache it
 static struct root_profile default_root_profile;
-static struct non_root_profile default_non_root_profile;
 
 static void __init init_default_profiles()
 {
@@ -22,9 +20,6 @@ static void __init init_default_profiles()
 		   sizeof(default_root_profile.capabilities.effective));
 	default_root_profile.namespaces = KSU_NS_INHERITED;
 	strcpy(default_root_profile.selinux_domain, KSU_DEFAULT_SELINUX_DOMAIN);
-
-	// This means that we will umount modules by default!
-	default_non_root_profile.umount_modules = true;
 
 	default_root_profile.flags = 0;
 }
@@ -144,11 +139,6 @@ int ksu_set_app_profile(struct app_profile *profile)
 		return -EINVAL;
 	}
 
-	// only allow default non root profile
-	if (unlikely(profile->curr_uid == KSU_APP_PROFILE_PRESERVE_UID && strcmp(profile->key, "$") != 0)) {
-		return -EINVAL;
-	}
-
 	mutex_lock(&allowlist_mutex);
 
 	hash_for_each_possible (allow_list, p, list, profile->curr_uid) {
@@ -191,8 +181,7 @@ int ksu_set_app_profile(struct app_profile *profile)
 		pr_info("set root profile, key: %s, uid: %d, gid: %d, context: %s\n", profile->key, profile->curr_uid,
 				profile->rp_config.profile.gid, profile->rp_config.profile.selinux_domain);
 	} else {
-		pr_info("set app profile, key: %s, uid: %d, umount modules: %d\n", profile->key, profile->curr_uid,
-				profile->nrp_config.profile.umount_modules);
+		pr_info("set app profile, key: %s, uid: %d\n", profile->key, profile->curr_uid);
 	}
 
 	hash_add_rcu(allow_list, &np->list, np->profile.curr_uid);
@@ -200,11 +189,6 @@ int ksu_set_app_profile(struct app_profile *profile)
 
 out:
 	result = 0;
-
-	if (unlikely(profile->curr_uid == KSU_APP_PROFILE_PRESERVE_UID)) {
-		// set default non root profile
-		default_non_root_profile.umount_modules = profile->nrp_config.profile.umount_modules;
-	}
 
 out_unlock:
 	mutex_unlock(&allowlist_mutex);
@@ -244,42 +228,6 @@ bool __ksu_is_allow_uid_for_current(uid_t uid)
 		return is_ksu_domain();
 	}
 	return __ksu_is_allow_uid(uid);
-}
-
-bool ksu_uid_should_umount(uid_t uid)
-{
-#ifdef CONFIG_KSU_TINYFS_NO_SETUID
-	return false;
-#else
-	struct app_profile *profile;
-	bool res;
-	if (is_uid_manager(uid)) {
-		// we should not umount on manager!
-		return false;
-	}
-
-	rcu_read_lock();
-	profile = ksu_get_app_profile(uid);
-	if (!profile) {
-		// no app profile found, it must be non root app
-		res = default_non_root_profile.umount_modules;
-	} else if (profile->allow_su) {
-		// if found and it is granted to su, we shouldn't umount for it
-		res = false;
-	} else {
-		// found an app profile
-		if (profile->nrp_config.use_default) {
-			res = default_non_root_profile.umount_modules;
-		} else {
-			res = profile->nrp_config.profile.umount_modules;
-		}
-	}
-	rcu_read_unlock();
-
-	if (profile)
-		ksu_put_app_profile(profile);
-	return res;
-#endif
 }
 
 void ksu_put_app_profile(struct app_profile *profile)
@@ -741,9 +689,7 @@ void ksu_prune_allowlist(const struct path *system_dir)
 	hash_for_each_safe (allow_list, i, tmp, np, list) {
 		uid_t uid = np->profile.curr_uid;
 		char *package = np->profile.key;
-		// we use this uid for special cases, don't prune it!
-		bool is_preserved_uid = uid == KSU_APP_PROFILE_PRESERVE_UID || uid == WEBVIEW_ZYGOTE_UID;
-		if (!is_preserved_uid && !package_is_installed(uid, package, packages)) {
+		if (!package_is_installed(uid, package, packages)) {
 			modified = true;
 			pr_info("prune uid: %d, package: %s\n", uid, package);
 			hlist_del_rcu(&np->list);

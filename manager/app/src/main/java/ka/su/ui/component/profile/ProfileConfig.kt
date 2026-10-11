@@ -5,23 +5,6 @@ import androidx.compose.ui.Modifier
 import ka.su.Natives
 
 @Composable
-fun AppProfileConfig(
-    modifier: Modifier = Modifier,
-    fixedName: Boolean,
-    enabled: Boolean,
-    profile: Natives.Profile,
-    onProfileChange: (Natives.Profile) -> Unit,
-) {
-    AppProfileConfigMaterial(
-        modifier = modifier,
-        fixedName = fixedName,
-        enabled = enabled,
-        profile = profile,
-        onProfileChange = onProfileChange
-    )
-}
-
-@Composable
 fun RootProfileConfig(
     modifier: Modifier = Modifier,
     fixedName: Boolean,

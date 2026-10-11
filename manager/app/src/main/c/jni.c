@@ -146,9 +146,6 @@ Java_ka_su_Natives_getAppProfile(JNIEnv *env, jobject thiz, jstring pkg, jint ui
     jfieldID namespacesField = (*env)->GetFieldID(env, cls, "namespace", "I");
     jfieldID flagsField = (*env)->GetFieldID(env, cls, "flags", "J");
 
-    jfieldID nonRootUseDefaultField = (*env)->GetFieldID(env, cls, "nonRootUseDefault", "Z");
-    jfieldID umountModulesField = (*env)->GetFieldID(env, cls, "umountModules", "Z");
-
     (*env)->SetObjectField(env, obj, keyField, (*env)->NewStringUTF(env, profile.key));
     (*env)->SetIntField(env, obj, currentUidField, profile.curr_uid);
 
@@ -158,9 +155,7 @@ Java_ka_su_Natives_getAppProfile(JNIEnv *env, jobject thiz, jstring pkg, jint ui
         LOGD("use default profile for: %s, %d", key, uid);
 
         // allow_su = false
-        // non root use default = true
         (*env)->SetBooleanField(env, obj, allowSuField, false);
-        (*env)->SetBooleanField(env, obj, nonRootUseDefaultField, true);
 
         return obj;
     }
@@ -197,10 +192,6 @@ Java_ka_su_Natives_getAppProfile(JNIEnv *env, jobject thiz, jstring pkg, jint ui
         (*env)->SetIntField(env, obj, namespacesField, profile.rp_config.profile.namespaces);
         (*env)->SetBooleanField(env, obj, allowSuField, profile.allow_su);
         (*env)->SetLongField(env, obj, flagsField, (jlong) profile.rp_config.profile.flags);
-    } else {
-        (*env)->SetBooleanField(env, obj, nonRootUseDefaultField,
-                (jboolean) profile.nrp_config.use_default);
-        (*env)->SetBooleanField(env, obj, umountModulesField, profile.nrp_config.profile.umount_modules);
     }
 
     return obj;
@@ -225,9 +216,6 @@ Java_ka_su_Natives_setAppProfile(JNIEnv *env, jobject clazz, jobject profile) {
     jfieldID namespacesField = (*env)->GetFieldID(env, cls, "namespace", "I");
     jfieldID flagsField = (*env)->GetFieldID(env, cls, "flags", "J");
 
-    jfieldID nonRootUseDefaultField = (*env)->GetFieldID(env, cls, "nonRootUseDefault", "Z");
-    jfieldID umountModulesField = (*env)->GetFieldID(env, cls, "umountModules", "Z");
-
     jobject key = (*env)->GetObjectField(env, profile, keyField);
     if (!key) {
         return false;
@@ -249,7 +237,6 @@ Java_ka_su_Natives_setAppProfile(JNIEnv *env, jobject clazz, jobject profile) {
     jobject capabilities = (*env)->GetObjectField(env, profile, capabilitiesField);
     jobject domain = (*env)->GetObjectField(env, profile, domainField);
     jboolean allowSu = (*env)->GetBooleanField(env, profile, allowSuField);
-    jboolean umountModules = (*env)->GetBooleanField(env, profile, umountModulesField);
 
     struct app_profile p = {0};
     p.version = KSU_APP_PROFILE_VER;
@@ -287,16 +274,9 @@ Java_ka_su_Natives_setAppProfile(JNIEnv *env, jobject clazz, jobject profile) {
         p.rp_config.profile.namespaces = (*env)->GetIntField(env, profile, namespacesField);
 
         p.rp_config.profile.flags = (*env)->GetLongField(env, profile, flagsField);
-    } else {
-        p.nrp_config.use_default = (*env)->GetBooleanField(env, profile, nonRootUseDefaultField);
-        p.nrp_config.profile.umount_modules = umountModules;
     }
 
     return set_app_profile(&p);
-}
-JNIEXPORT jboolean JNICALL
-Java_ka_su_Natives_uidShouldUmount(JNIEnv *env, jobject thiz, jint uid) {
-    return uid_should_umount(uid);
 }
 JNIEXPORT jboolean JNICALL
 Java_ka_su_Natives_isSuEnabled(JNIEnv *env, jobject thiz) {
@@ -305,21 +285,6 @@ Java_ka_su_Natives_isSuEnabled(JNIEnv *env, jobject thiz) {
 JNIEXPORT jboolean JNICALL
 Java_ka_su_Natives_setSuEnabled(JNIEnv *env, jobject thiz, jboolean enabled) {
     return set_su_enabled(enabled);
-}
-
-JNIEXPORT jboolean JNICALL
-Java_ka_su_Natives_isKernelUmountEnabled(JNIEnv *env, jobject thiz) {
-    return is_kernel_umount_enabled();
-}
-
-JNIEXPORT jboolean JNICALL
-Java_ka_su_Natives_isKernelUmountSupported(JNIEnv *env, jobject thiz) {
-    return is_kernel_umount_supported();
-}
-
-JNIEXPORT jboolean JNICALL
-Java_ka_su_Natives_setKernelUmountEnabled(JNIEnv *env, jobject thiz, jboolean enabled) {
-    return set_kernel_umount_enabled(enabled);
 }
 
 JNIEXPORT jboolean JNICALL

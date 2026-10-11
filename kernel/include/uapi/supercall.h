@@ -84,11 +84,6 @@ struct ksu_uid_granted_root_cmd {
 	__u8 granted; /* Output: true if granted, false otherwise */
 };
 
-struct ksu_uid_should_umount_cmd {
-	__u32 uid; /* Input: target UID to check */
-	__u8 should_umount; /* Output: true if should umount, false otherwise */
-};
-
 struct ksu_get_manager_appid_cmd {
 	__u32 appid; /* Output: manager app id */
 };
@@ -132,20 +127,10 @@ struct ksu_nuke_ext4_sysfs_cmd {
 	__aligned_u64 arg; /* Input: mnt pointer */
 };
 
-struct ksu_add_try_umount_cmd {
-	__aligned_u64 arg; /* char ptr, this is the mountpoint */
-	__u32 flags; /* this is the flag we use for it */
-	__u8 mode; /* denotes what to do with it 0:wipe_list 1:add_to_list 2:delete_entry */
-};
-
 struct ksu_get_sulog_fd_cmd {
 	__u32 flags; /* Input: reserved for future use, must be 0 */
 };
 
-
-#define KSU_UMOUNT_WIPE 0	/* ignore everything and wipe list */
-#define KSU_UMOUNT_ADD 1	/* add entry (path + flags) */
-#define KSU_UMOUNT_DEL 2	/* delete entry, strcmp */
 
 /* IOCTL command definitions */
 #define KSU_IOCTL_GRANT_ROOT			_IOC(_IOC_NONE, 'K', 1, 0)
@@ -162,7 +147,6 @@ struct ksu_get_sulog_fd_cmd {
 #define KSU_IOCTL_NEW_GET_ALLOW_LIST		_IOWR('K', 6, struct ksu_new_get_allow_list_cmd)
 #define KSU_IOCTL_NEW_GET_DENY_LIST		_IOWR('K', 7, struct ksu_new_get_allow_list_cmd)
 #define KSU_IOCTL_UID_GRANTED_ROOT		_IOC(_IOC_READ | _IOC_WRITE, 'K', 8, 0)
-#define KSU_IOCTL_UID_SHOULD_UMOUNT		_IOC(_IOC_READ | _IOC_WRITE, 'K', 9, 0)
 #define KSU_IOCTL_GET_MANAGER_APPID		_IOC(_IOC_READ, 'K', 10, 0)
 #define KSU_IOCTL_GET_APP_PROFILE		_IOC(_IOC_READ | _IOC_WRITE, 'K', 11, 0)
 #define KSU_IOCTL_SET_APP_PROFILE		_IOC(_IOC_WRITE, 'K', 12, 0)
@@ -171,7 +155,6 @@ struct ksu_get_sulog_fd_cmd {
 #define KSU_IOCTL_GET_WRAPPER_FD		_IOC(_IOC_WRITE, 'K', 15, 0)
 #define KSU_IOCTL_MANAGE_MARK			_IOC(_IOC_READ | _IOC_WRITE, 'K', 16, 0)
 #define KSU_IOCTL_NUKE_EXT4_SYSFS		_IOC(_IOC_WRITE, 'K', 17, 0)
-#define KSU_IOCTL_ADD_TRY_UMOUNT		_IOC(_IOC_WRITE, 'K', 18, 0)
 #define KSU_IOCTL_SET_INIT_PGRP			_IO('K', 19)
 #define KSU_IOCTL_GET_SULOG_FD			_IOW('K', 20, struct ksu_get_sulog_fd_cmd)
 #define KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT	_IO('K', 21)

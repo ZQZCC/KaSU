@@ -48,8 +48,6 @@ object Natives {
     val isPrBuild: Boolean
         external get
 
-    external fun uidShouldUmount(uid: Int): Boolean
-
     /**
      * Get the profile of the given package.
      * @param key usually the package name
@@ -68,16 +66,6 @@ object Natives {
     external fun setSuEnabled(enabled: Boolean): Boolean
 
     /**
-     * Kernel module umount can be disabled temporarily.
-     *  0: disabled
-     *  1: enabled
-     *  negative : error
-     */
-    external fun isKernelUmountEnabled(): Boolean
-    external fun isKernelUmountSupported(): Boolean
-    external fun setKernelUmountEnabled(enabled: Boolean): Boolean
-
-    /**
      * SELinux hide can be disabled temporarily.
      *  0: disabled
      *  1: enabled
@@ -92,26 +80,6 @@ object Natives {
     external fun getUserName(uid: Int): String?
 
     external fun getSuperuserCount(): Int
-
-    private const val NON_ROOT_DEFAULT_PROFILE_KEY = "$"
-    private const val NOBODY_UID = 9999
-
-    fun setDefaultUmountModules(umountModules: Boolean): Boolean {
-        Profile(
-            NON_ROOT_DEFAULT_PROFILE_KEY,
-            NOBODY_UID,
-            false,
-            umountModules = umountModules
-        ).let {
-            return setAppProfile(it)
-        }
-    }
-
-    fun isDefaultUmountModules(): Boolean {
-        getAppProfile(NON_ROOT_DEFAULT_PROFILE_KEY, NOBODY_UID).let {
-            return it.umountModules
-        }
-    }
 
     val kernelUAPIVersion: Int
         external get
@@ -128,7 +96,7 @@ object Natives {
     @Parcelize
     @Serializable
     data class Profile(
-        // and there is a default profile for root and non-root
+        // profile key, usually the package name
         val name: String,
         // current uid for the package, this is convivent for kernel to check
         // if the package name doesn't match uid, then it should be invalidated.
@@ -147,8 +115,6 @@ object Natives {
         val context: String = KERNEL_SU_DOMAIN,
         val namespace: Int = Namespace.INHERITED.ordinal,
 
-        val nonRootUseDefault: Boolean = true,
-        val umountModules: Boolean = true,
         var rules: String = "", // this field is save in ksud!!
 
         val flags: Long = FLAG_KSU_NO_NEW_PRIVS,

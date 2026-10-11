@@ -20,10 +20,8 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.DeveloperMode
 import androidx.compose.material.icons.filled.Fence
 import androidx.compose.material.icons.filled.FindReplace
-import androidx.compose.material.icons.filled.FolderDelete
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.RemoveModerator
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.rounded.UploadFile
@@ -166,15 +164,6 @@ fun SettingPagerMaterial(
                                 onItemSelected = actions.onSetSuCompatMode
                             )
                         }
-                        if (uiState.kernelUmountStatus == "supported") add {
-                            SegmentedSwitchItem(
-                                icon = Icons.Filled.RemoveCircle,
-                                title = stringResource(id = R.string.settings_kernel_umount),
-                                summary = stringResource(id = R.string.settings_kernel_umount_summary),
-                                checked = uiState.isKernelUmountEnabled,
-                                onCheckedChange = actions.onSetKernelUmountEnabled
-                            )
-                        }
                         if (uiState.selinuxHideStatus == "supported") add {
                             SegmentedSwitchItem(
                                 icon = Icons.Filled.Policy,
@@ -217,15 +206,6 @@ fun SettingPagerMaterial(
                 SegmentedColumn(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     content = buildList<@Composable () -> Unit> {
-                        if (uiState.kernelUmountStatus == "supported") add {
-                            SegmentedSwitchItem(
-                                icon = Icons.Filled.FolderDelete,
-                                title = stringResource(id = R.string.settings_umount_modules_default),
-                                summary = stringResource(id = R.string.settings_umount_modules_default_summary),
-                                checked = uiState.isDefaultUmountModules,
-                                onCheckedChange = actions.onSetDefaultUmountModules
-                            )
-                        }
                         uiState.isHideBootloaderEnabled?.let { enabled ->
                             add {
                                 SegmentedSwitchItem(

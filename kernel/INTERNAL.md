@@ -34,14 +34,6 @@
 - 6.8+ LSM relies on branch link hooking. ARM64 only.
 - manual hooking also available.
 
-## task_fix_setuid LSM
-- upstream was on this before
-- for seccomp disabling and umount feature
-#### we don't have seccomp filter caching
-- we just disable seccomp on setuid LSM
-- we also reuse this seccomp status as sucompat gate
-- we do this regardless of kernel version
-
 ## Package authorization cleanup
 - Observe successful packages.list replacements through /data/system's inode callback.
 - One static work item waits for VFS rename completion, then reads a temporary text snapshot.

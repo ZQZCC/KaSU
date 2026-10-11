@@ -13,8 +13,6 @@ uint32_t get_manager_uapi_version(void);
 uint32_t get_version(void);
 int legacy_get_version(void);
 
-bool uid_should_umount(int uid);
-
 bool is_safe_mode(void);
 bool is_manager(void);
 
@@ -30,12 +28,6 @@ int get_app_profile(struct app_profile *profile);
 bool set_su_enabled(bool enabled);
 
 bool is_su_enabled(void);
-
-// Kernel umount
-bool set_kernel_umount_enabled(bool enabled);
-
-bool is_kernel_umount_enabled(void);
-bool is_kernel_umount_supported(void);
 
 // SELinux hide
 int set_selinux_hide_enabled(bool enabled);

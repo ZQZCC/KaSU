@@ -20,11 +20,11 @@
 #include <string.h>
 #include <unistd.h>
 
-enum { OPT_TEMP = 1, OPT_STDIN = 2, OPT_CONFIG = 4, OPT_GLOBAL = 8, OPT_FLAGS = 16 };
+enum { OPT_TEMP = 1, OPT_STDIN = 2, OPT_CONFIG = 4, OPT_GLOBAL = 8 };
 
 struct arguments {
 	char *value[2];
-	unsigned count, flags, umount_flags;
+	unsigned count, flags;
 };
 
 static int fail(const char *format, ...)
@@ -98,13 +98,10 @@ static int usage(const char *command, const char *arguments, bool error)
 static int parse(int argc, char **argv, const char *command, const char *syntax, unsigned allowed,
 		 unsigned minimum, unsigned maximum, struct arguments *args)
 {
-	static const struct option options[] = {{"help", no_argument, NULL, 'h'},
-						{"temp", no_argument, NULL, 't'},
-						{"stdin", no_argument, NULL, 's'},
-						{"config", no_argument, NULL, 'c'},
-						{"global-mnt", no_argument, NULL, 'g'},
-						{"flags", required_argument, NULL, 'f'},
-						{NULL, 0, NULL, 0}};
+	static const struct option options[] = {
+	    {"help", no_argument, NULL, 'h'},	    {"temp", no_argument, NULL, 't'},
+	    {"stdin", no_argument, NULL, 's'},	    {"config", no_argument, NULL, 'c'},
+	    {"global-mnt", no_argument, NULL, 'g'}, {NULL, 0, NULL, 0}};
 	*args = (struct arguments){0};
 	unsigned seen = 0;
 	opterr = 0;
@@ -112,9 +109,9 @@ static int parse(int argc, char **argv, const char *command, const char *syntax,
 	int option;
 	for (;;) {
 		int next = optind ? optind : 1;
-		if (next < argc && !ksu_option_known(argv[next], "htcgf:", options))
+		if (next < argc && !ksu_option_known(argv[next], "htcg", options))
 			return usage(command, syntax, true);
-		option = getopt_long(argc, argv, "-:htcgf:", options, NULL);
+		option = getopt_long(argc, argv, "-:htcg", options, NULL);
 		if (option == -1)
 			break;
 		if (option == 'h')
@@ -139,9 +136,6 @@ static int parse(int argc, char **argv, const char *command, const char *syntax,
 		case 'g':
 			flag = OPT_GLOBAL;
 			break;
-		case 'f':
-			flag = OPT_FLAGS;
-			break;
 		default:
 			return usage(command, syntax, true);
 		}
@@ -149,12 +143,6 @@ static int parse(int argc, char **argv, const char *command, const char *syntax,
 			return usage(command, syntax, true);
 		seen |= flag;
 		args->flags |= flag;
-		if (flag == OPT_FLAGS) {
-			uint64_t value;
-			if (number(optarg, UINT32_MAX, &value))
-				return -2;
-			args->umount_flags = (unsigned)value;
-		}
 	}
 	while (optind < argc) {
 		if (args->count == maximum)
@@ -478,10 +466,10 @@ static int kernel_command(int argc, char **argv)
 {
 	help_command(argc, argv);
 	if (argc < 2)
-		return usage("kernel", "<nuke-ext4-sysfs|umount|notify-module-mounted>", true);
+		return usage("kernel", "<nuke-ext4-sysfs|notify-module-mounted>", true);
 	struct arguments args;
 	if (is_help(argv[1]))
-		return usage("kernel", "<nuke-ext4-sysfs|umount|notify-module-mounted>", false);
+		return usage("kernel", "<nuke-ext4-sysfs|notify-module-mounted>", false);
 	if (!strcmp(argv[1], "nuke-ext4-sysfs")) {
 		int result =
 		    parse(argc - 1, argv + 1, "kernel", "nuke-ext4-sysfs MNT", 0, 1, 1, &args);
@@ -499,22 +487,7 @@ static int kernel_command(int argc, char **argv)
 		(void)ksu_ioctl(KSU_IOCTL_REPORT_EVENT, &cmd);
 		return 0;
 	}
-	if (argc > 2 && !strcmp(argv[1], "umount"))
-		help_command(argc - 1, argv + 1);
-	static const char *const names[] = {"add", "del", "wipe"};
-	static const unsigned modes[] = {KSU_UMOUNT_ADD, KSU_UMOUNT_DEL, KSU_UMOUNT_WIPE};
-	int cmd = argc > 2 && !strcmp(argv[1], "umount") ? COMMAND_INDEX(argv[2], names) : -1;
-	if (cmd < 0)
-		return usage("kernel umount", "<add|del|wipe> [MNT] [-f FLAGS]",
-			     argc < 3 || !is_help(argv[2]));
-	unsigned count = cmd != 2;
-	int result = parse(argc - 2, argv + 2, "kernel umount", "<COMMAND> [MNT] [-f FLAGS]",
-			   cmd == 0 ? OPT_FLAGS : 0, count, count, &args);
-	if (result)
-		return result;
-	struct ksu_add_try_umount_cmd request = {
-	    .arg = (uintptr_t)args.value[0], .flags = args.umount_flags, .mode = modes[cmd]};
-	return ksu_ioctl(KSU_IOCTL_ADD_TRY_UMOUNT, &request) < 0 ? -1 : 0;
+	return usage("kernel", "<nuke-ext4-sysfs|notify-module-mounted>", true);
 }
 
 static int bootloader_command(int argc, char **argv)

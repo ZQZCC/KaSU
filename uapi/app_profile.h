@@ -32,10 +32,6 @@ struct root_profile {
     __u64 flags;
 };
 
-struct non_root_profile {
-    bool umount_modules;
-};
-
 struct app_profile {
     /*
      * It may be utilized for backward compatibility, although we have never
@@ -48,20 +44,12 @@ struct app_profile {
     __s32 curr_uid;
     bool allow_su;
 
-    union {
-        struct {
-            bool use_default;
-            char template_name[KSU_MAX_PACKAGE_NAME];
+    struct {
+        bool use_default;
+        char template_name[KSU_MAX_PACKAGE_NAME];
 
-            struct root_profile profile;
-        } rp_config;
-
-        struct {
-            bool use_default;
-
-            struct non_root_profile profile;
-        } nrp_config;
-    };
+        struct root_profile profile;
+    } rp_config;
 };
 
 #endif

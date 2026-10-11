@@ -124,12 +124,6 @@ class SettingsRepositoryImpl : SettingsRepository {
 
     override fun getSuCompatModePref(): Int = prefs.getInt("su_compat_mode", 0)
 
-    override suspend fun getKernelUmountStatus(): String = getFeatureStatus("kernel_umount")
-
-    override fun isKernelUmountEnabled(): Boolean = Natives.isKernelUmountEnabled()
-
-    override fun setKernelUmountEnabled(enabled: Boolean): Boolean = Natives.setKernelUmountEnabled(enabled)
-
     override suspend fun getSelinuxHideStatus(): String = getFeatureStatus("selinux_hide")
 
     override fun isSelinuxHideEnabled(): Boolean = Natives.isSelinuxHideEnabled()
@@ -158,10 +152,6 @@ class SettingsRepositoryImpl : SettingsRepository {
         } else {
             false
         }
-
-    override fun isDefaultUmountModules(): Boolean = Natives.isDefaultUmountModules()
-
-    override fun setDefaultUmountModules(enabled: Boolean): Boolean = Natives.setDefaultUmountModules(enabled)
 
 
     override fun execKsudFeatureSave() {

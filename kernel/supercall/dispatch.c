@@ -258,24 +258,6 @@ static int do_uid_granted_root(const struct file *filp, void __user *arg)
 	return 0;
 }
 
-static int do_uid_should_umount(const struct file *filp, void __user *arg)
-{
-	struct ksu_uid_should_umount_cmd cmd;
-
-	if (copy_from_user(&cmd, arg, sizeof(cmd))) {
-		return -EFAULT;
-	}
-
-	cmd.should_umount = ksu_uid_should_umount(cmd.uid);
-
-	if (copy_to_user(arg, &cmd, sizeof(cmd))) {
-		pr_err("uid_should_umount: copy_to_user failed\n");
-		return -EFAULT;
-	}
-
-	return 0;
-}
-
 static int do_get_manager_appid(const struct file *filp, void __user *arg)
 {
 	struct ksu_get_manager_appid_cmd cmd;
@@ -556,7 +538,6 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
 	{ .cmd = KSU_IOCTL_NEW_GET_ALLOW_LIST, .name = "NEW_GET_ALLOW_LIST", .handler = do_new_get_allow_list, .perm_check = manager_or_root },
 	{ .cmd = KSU_IOCTL_NEW_GET_DENY_LIST, .name = "NEW_GET_DENY_LIST", .handler = do_new_get_deny_list, .perm_check = manager_or_root },
 	{ .cmd = KSU_IOCTL_UID_GRANTED_ROOT, .name = "UID_GRANTED_ROOT", .handler = do_uid_granted_root, .perm_check = manager_or_root },
-	{ .cmd = KSU_IOCTL_UID_SHOULD_UMOUNT, .name = "UID_SHOULD_UMOUNT", .handler = do_uid_should_umount, .perm_check = manager_or_root },
 	{ .cmd = KSU_IOCTL_GET_MANAGER_APPID, .name = "GET_MANAGER_APPID", .handler = do_get_manager_appid, .perm_check = manager_or_root },
 	{ .cmd = KSU_IOCTL_GET_APP_PROFILE, .name = "GET_APP_PROFILE", .handler = do_get_app_profile, .perm_check = only_manager },
 	{ .cmd = KSU_IOCTL_SET_APP_PROFILE, .name = "SET_APP_PROFILE", .handler = do_set_app_profile, .perm_check = only_manager },

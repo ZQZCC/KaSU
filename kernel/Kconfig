@@ -26,9 +26,8 @@ config KSU_TINYFS_NO_SETUID
 	help
 	  For fixed TinyFS/NoMount kernels with manual security hooks only.
 	  Obtain control FDs on demand and clear seccomp only when granting root.
-	  NoMount must provide module visibility rules; KernelSU's module-unmount
-	  policy is unavailable. There is no traditional sucompat fallback if
-	  TinyFS initialization fails.
+	  NoMount provides module visibility rules. There is no traditional
+	  sucompat fallback if TinyFS initialization fails.
 
 config KSU_TINYFS_PKG_OBSERVER
 	bool
