@@ -540,7 +540,6 @@ static int bootloader_command(int argc, char **argv)
 
 int ksu_cli_main(int argc, char **argv)
 {
-	ksu_setup_sigsys();
 	const char *name = strrchr(argv[0], '/');
 	name = name ? name + 1 : argv[0];
 	if (!strcmp(name, "su"))

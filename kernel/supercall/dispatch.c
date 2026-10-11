@@ -10,8 +10,6 @@ static int do_grant_root(const struct file *filp, void __user *arg)
 		return -EPERM;
 	}
 
-	write_sulog('i'); // log ioctl escalation
-
 	pr_info("allow root for: %d\n", audit_uid);
 	ret = escape_with_root_profile_ref(profile);
 
@@ -31,12 +29,6 @@ static int do_get_info(const struct file *filp, void __user *arg)
 	}
 	cmd.features = KSU_FEATURE_MAX;
 	cmd.uapi_version = KERNEL_SU_UAPI_VERSION;
-
-	if (ksuver_override)
-		cmd.version = ksuver_override;
-
-	if (ksuflags_override)
-		cmd.flags = ksuflags_override;
 
 	if (copy_to_user(arg, &cmd, sizeof(cmd))) {
 		pr_err("get_version: copy_to_user failed\n");

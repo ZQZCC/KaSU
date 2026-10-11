@@ -7,10 +7,6 @@
 // 5: add EVENT_SERVICES with a start/skip result
 #define KERNEL_SU_UAPI_VERSION 5
 
-/* Magic numbers for reboot hook to install fd */
-#define KSU_INSTALL_MAGIC1 0xDEADBEEF
-#define KSU_INSTALL_MAGIC2 0xCAFEBABE
-
 #define KSU_TINYFS_CONTROL_PATH "/system/bin/.ksu"
 
 struct ksu_become_daemon_cmd {

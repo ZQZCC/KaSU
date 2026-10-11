@@ -3,45 +3,20 @@
 #include "driver.h"
 #include "uapi/supercall.h"
 
-#include <android/log.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/syscall.h>
-#include <ucontext.h>
 #include <unistd.h>
 
-static _Thread_local volatile sig_atomic_t svc_in_flight;
-static _Thread_local volatile sig_atomic_t sigsys_occurred;
 static pthread_once_t driver_once = PTHREAD_ONCE_INIT;
 static int driver_fd = -1;
 static pthread_once_t info_once = PTHREAD_ONCE_INIT;
 static struct ksu_get_info_cmd driver_info;
-
-static void sigsys_handler(int sig, siginfo_t *info, void *context)
-{
-	(void)sig;
-	if (!info || !context || info->si_code != 1)
-		return;
-	if (svc_in_flight)
-		sigsys_occurred = 1;
-	((ucontext_t *)context)->uc_mcontext.regs[0] = (unsigned long)-EPERM;
-}
-
-void ksu_setup_sigsys(void)
-{
-	struct sigaction action = {.sa_sigaction = sigsys_handler, .sa_flags = SA_SIGINFO};
-	sigemptyset(&action.sa_mask);
-	if (sigaction(SIGSYS, &action, NULL))
-		__android_log_print(ANDROID_LOG_WARN, "KernelSU",
-				    "Failed to set SIGSYS handler: %s", strerror(errno));
-}
 
 static int scan_driver_fd(int *found)
 {
@@ -88,22 +63,10 @@ static void init_driver_fd(void)
 		return;
 
 	int control = open(KSU_TINYFS_CONTROL_PATH, O_RDONLY | O_CLOEXEC);
-	if (control >= 0) {
-		driver_fd = ioctl(control, KSU_IOCTL_TINYFS_GET_DRIVER_FD, 0);
-		close(control);
-		if (driver_fd >= 0)
-			return;
-	}
-	driver_fd = -1;
-	svc_in_flight = 1;
-	syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, &driver_fd);
-	svc_in_flight = 0;
-	if (sigsys_occurred) {
-		sigsys_occurred = 0;
-		fputs("KernelSU driver install syscall was blocked by seccomp\n", stderr);
-		__android_log_print(ANDROID_LOG_ERROR, "KernelSU",
-				    "KernelSU driver install syscall was blocked by seccomp");
-	}
+	if (control < 0)
+		return;
+	driver_fd = ioctl(control, KSU_IOCTL_TINYFS_GET_DRIVER_FD, 0);
+	close(control);
 }
 
 int ksu_driver_fd(void)

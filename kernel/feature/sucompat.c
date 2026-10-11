@@ -22,5 +22,4 @@ static const struct ksu_feature_handler su_compat_handler = {
 void ksu_sucompat_init(void)
 {
 	ksu_register_feature_handler(&su_compat_handler);
-	tiny_sulog_init_heap();
 }

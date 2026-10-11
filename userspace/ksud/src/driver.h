@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 
-void ksu_setup_sigsys(void);
 int ksu_claim_driver_fd(void);
 int ksu_driver_fd(void);
 int ksu_ioctl(uint32_t request, void *arg);

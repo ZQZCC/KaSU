@@ -55,9 +55,6 @@
 #include "downstream/kallsyms_common.h"
 #endif
 
-#include "downstream/tiny_sulog.h"
-#include "downstream/toolkit.h"
-
 // unity build
 #include "manager/manager_identity.c"
 #include "policy/allowlist.c"
