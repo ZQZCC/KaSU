@@ -159,6 +159,7 @@ private fun StatusCard(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         TonalCard(
+            onClick = actions.onInstallClick.takeIf { state.isRootAvailable },
             containerColor = if (state.ksuVersion != null) {
                 MaterialTheme.colorScheme.secondaryContainer
             } else {
@@ -370,14 +371,14 @@ private fun InfoCard(systemInfo: SystemInfo) {
 private fun StatusCardActivatedPreview() {
     StatusCard(
         state = previewHomeScreenState(ksuVersion = 12345, superuserCount = 5, moduleCount = 10),
-        actions = HomeActions({}, {}, {})
+        actions = HomeActions({}, {}, {}, {})
     )
 }
 
 @Preview(name = "Not Activated")
 @Composable
 private fun StatusCardNotActivatedPreview() {
-    StatusCard(state = previewHomeScreenState(ksuVersion = null), actions = HomeActions({}, {}, {}))
+    StatusCard(state = previewHomeScreenState(ksuVersion = null), actions = HomeActions({}, {}, {}, {}))
 }
 
 @Preview(name = "Permissive")
@@ -385,7 +386,7 @@ private fun StatusCardNotActivatedPreview() {
 private fun StatusCardPermissivePreview() {
     StatusCard(
         state = previewHomeScreenState(ksuVersion = null, selinuxStatus = "Permissive"),
-        actions = HomeActions({}, {}, {})
+        actions = HomeActions({}, {}, {}, {})
     )
 }
 
@@ -410,7 +411,7 @@ private fun HomeScreenPreviewContent(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        val actions = HomeActions({}, {}, {})
+        val actions = HomeActions({}, {}, {}, {})
         StatusCard(
             state = previewHomeScreenState(
                 ksuVersion = ksuVersion,

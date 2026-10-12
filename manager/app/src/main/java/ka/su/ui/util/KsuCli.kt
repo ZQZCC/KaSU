@@ -17,6 +17,7 @@ import ka.su.Natives
 import ka.su.ksuApp
 import org.json.JSONArray
 import java.io.File
+import java.io.IOException
 
 /**
  * @author weishu
@@ -210,6 +211,54 @@ fun flashModule(
         file.delete()
 
         return FlashResult(result)
+    }
+}
+
+fun flashAnyKernel(
+    uri: Uri,
+    inactiveSlot: Boolean,
+    onStdout: (String) -> Unit,
+    onStderr: (String) -> Unit,
+): FlashResult {
+    var zip: File? = null
+    try {
+        val file = File.createTempFile("anykernel-", ".zip", ksuApp.cacheDir)
+        zip = file
+        val input = ksuApp.contentResolver.openInputStream(uri)
+            ?: return FlashResult(1, "Cannot open the selected archive", false)
+        input.use { source -> file.outputStream().use { source.copyTo(it) } }
+
+        val slot = if (inactiveSlot) "inactive" else "active"
+        val cmd = """
+            (
+                set -eu
+                work='${file.absolutePath}.d'
+                trap 'status=${'$'}?; rm -rf "${'$'}work"; exit "${'$'}status"' EXIT
+                mkdir -p "${'$'}work"
+                bb=/data/adb/ksu/bin/busybox
+                "${'$'}bb" unzip -p '${file.absolutePath}' META-INF/com/google/android/update-binary > "${'$'}work/update-binary"
+                "${'$'}bb" grep -q AnyKernel3 "${'$'}work/update-binary" || {
+                    echo 'Not an AnyKernel3 archive' >&2
+                    exit 1
+                }
+                ASH_STANDALONE=1 SLOT_SELECT=$slot AKHOME="${'$'}work/ak3" \
+                    "${'$'}bb" ash "${'$'}work/update-binary" 3 1 '${file.absolutePath}'
+            )
+        """.trimIndent()
+        val result = flashWithIO(cmd, { line ->
+            when {
+                line.startsWith("ui_print ") -> onStdout(line.removePrefix("ui_print "))
+                line.trim() == "ui_print" -> Unit
+                else -> onStderr(line)
+            }
+        }, onStderr)
+        return FlashResult(result)
+    } catch (e: IOException) {
+        return FlashResult(1, e.toString(), false)
+    } catch (e: SecurityException) {
+        return FlashResult(1, e.toString(), false)
+    } finally {
+        zip?.delete()
     }
 }
 

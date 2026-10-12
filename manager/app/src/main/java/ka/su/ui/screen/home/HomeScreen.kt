@@ -13,6 +13,8 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ka.su.ui.LocalMainPagerState
+import ka.su.ui.navigation3.LocalNavigator
+import ka.su.ui.navigation3.Route
 import ka.su.ui.viewmodel.HomeViewModel
 
 @Composable
@@ -23,6 +25,7 @@ fun HomePager(
     val viewModel = viewModel<HomeViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val mainState = LocalMainPagerState.current
+    val navigator = LocalNavigator.current
     val uriHandler = LocalUriHandler.current
     val latestIsCurrentPage by rememberUpdatedState(isCurrentPage)
     val initialResumeHandled = rememberSaveable { mutableStateOf(false) }
@@ -47,6 +50,7 @@ fun HomePager(
         onSuperuserClick = { if (uiState.isFullFeatured) mainState.animateToPage(1) },
         onModuleClick = { if (uiState.isFullFeatured) mainState.animateToPage(2) },
         onOpenUrl = uriHandler::openUri,
+        onInstallClick = { navigator.push(Route.Install) },
     )
 
     HomePagerMaterial(

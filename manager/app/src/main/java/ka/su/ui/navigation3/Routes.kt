@@ -70,6 +70,10 @@ sealed interface Route : NavKey, Parcelable {
 
     @Parcelize
     @Serializable
+    data object Install : Route
+
+    @Parcelize
+    @Serializable
     data class Flash(@Serializable(with = FlashItSerializer::class) val flashIt: FlashIt) : Route
 
     @Parcelize

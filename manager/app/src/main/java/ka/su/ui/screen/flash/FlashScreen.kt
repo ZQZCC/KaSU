@@ -28,7 +28,7 @@ fun FlashScreen(flashIt: FlashIt) {
     val logContent = remember { StringBuilder() }
     var showRebootAction by rememberSaveable { mutableStateOf(false) }
     var flashingStatus by rememberSaveable { mutableStateOf(FlashingStatus.FLASHING) }
-    val softReboot = isSoftRebootPreferred()
+    val softReboot = flashIt is FlashIt.FlashModules && isSoftRebootPreferred()
     val snackbarHost = remember { SnackbarHostState() }
     val backEnabled = flashingStatus != FlashingStatus.FLASHING
 

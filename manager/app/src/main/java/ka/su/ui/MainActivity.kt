@@ -74,6 +74,7 @@ import ka.su.ui.screen.appprofile.AppProfileScreen
 import ka.su.ui.screen.colorpalette.ColorPaletteScreen
 import ka.su.ui.screen.executemoduleaction.ExecuteModuleActionScreen
 import ka.su.ui.screen.flash.FlashScreen
+import ka.su.ui.screen.install.InstallScreen
 import ka.su.ui.screen.home.HomePager
 import ka.su.ui.screen.module.ModulePager
 import ka.su.ui.screen.modulerepo.ModuleRepoDetailScreen
@@ -192,6 +193,7 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.AppProfile> { key -> AppProfileScreen(key.uid) }
                                 entry<Route.ModuleRepo> { ModuleRepoScreen() }
                                 entry<Route.ModuleRepoDetail> { key -> ModuleRepoDetailScreen(key.module) }
+                                entry<Route.Install> { InstallScreen() }
                                 entry<Route.Flash> { key -> FlashScreen(key.flashIt) }
                                 entry<Route.ExecuteModuleAction> { key -> ExecuteModuleActionScreen(key.moduleId, key.fromShortcut) }
                                 entry<Route.Home> { mainScreenEntry() }
