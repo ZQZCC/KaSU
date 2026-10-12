@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import ka.su.ui.util.FlashResult
+import ka.su.ui.util.flashAnyKernel
 import ka.su.ui.util.flashModule
 import java.io.File
 import java.text.SimpleDateFormat
@@ -32,6 +33,8 @@ sealed class FlashIt : Parcelable {
     @Parcelize
     data class FlashModules(val uris: List<Uri>) : FlashIt()
 
+    @Parcelize
+    data class FlashAnyKernel(val uri: Uri, val inactiveSlot: Boolean) : FlashIt()
 }
 
 fun flashModulesSequentially(
@@ -58,7 +61,9 @@ fun flashIt(
         is FlashIt.FlashModules -> {
             flashModulesSequentially(flashIt.uris, onStdout, onStderr)
         }
-
+        is FlashIt.FlashAnyKernel -> {
+            flashAnyKernel(flashIt.uri, flashIt.inactiveSlot, onStdout, onStderr)
+        }
     }
 }
 
