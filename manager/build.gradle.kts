@@ -31,5 +31,5 @@ fun getVersionCode(): Int {
 }
 
 fun getVersionName(): String {
-    return "v3.3.0"
+    return "v3.3.1"
 }
