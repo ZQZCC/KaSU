@@ -28,10 +28,16 @@ bool ksu_tinyfs_sucompat_ready(void)
 	return smp_load_acquire(&ksu_tinyfs_ready);
 }
 
-static __always_inline bool ksu_tinyfs_su_visible(void)
+static __always_inline bool ksu_tinyfs_check_su_access(void)
 {
-	return READ_ONCE(ksu_su_compat_enabled) &&
-	       ksu_is_allow_uid_for_current(current_uid().val);
+	uid_t uid = current_uid().val;
+
+	if (!READ_ONCE(ksu_su_compat_enabled) ||
+	    !ksu_is_allow_uid_for_current(uid))
+		return false;
+	if (uid && ksu_is_seccomp_enabled())
+		disable_seccomp();
+	return true;
 }
 
 static int ksu_tinyfs_d_revalidate(struct dentry *dentry, unsigned int flags)
@@ -53,7 +59,7 @@ static int ksu_tinyfs_d_revalidate(struct dentry *dentry, unsigned int flags)
 	if (flags & LOOKUP_RCU)
 		return -ECHILD;
 
-	return ksu_tinyfs_su_visible() ? 1 : -ENOENT;
+	return ksu_tinyfs_check_su_access() ? 1 : -ENOENT;
 }
 
 static struct dentry_operations ksu_tinyfs_dops;
@@ -78,7 +84,7 @@ static struct dentry *ksu_tinyfs_lookup(struct inode *dir,
 		if (!ksu_tinyfs_sucompat_ready())
 			goto original_lookup;
 		inode = ksu_tinyfs_su_inode;
-		visible = ksu_tinyfs_su_visible();
+		visible = ksu_tinyfs_check_su_access();
 	} else if (dentry->d_name.len == 4 &&
 		   memcmp(dentry->d_name.name, ".ksu", 4) == 0) {
 		if (!smp_load_acquire(&ksu_tinyfs_control_ready))
@@ -105,7 +111,7 @@ static long ksu_tinyfs_ioctl(struct file *file, unsigned int cmd,
 	switch (cmd) {
 	case KSU_IOCTL_TINYFS_GET_SU_FD:
 		if (file_inode(file) != ksu_tinyfs_su_inode ||
-		    !ksu_tinyfs_su_visible())
+		    !ksu_tinyfs_check_su_access())
 			return -EPERM;
 		return ksu_install_su_fd();
 	case KSU_IOCTL_TINYFS_GET_DRIVER_FD:

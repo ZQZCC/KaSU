@@ -593,6 +593,8 @@ long ksu_supercall_handle_ioctl(const struct file *filp, unsigned int cmd, void 
 				pr_warn("ksu ioctl: permission denied for cmd=0x%x uid=%d\n", cmd, current_uid().val);
 				return -EPERM;
 			}
+			if (current_uid().val && ksu_is_seccomp_enabled() && ksu_is_manager_fd(filp))
+				disable_seccomp();
 			// Execute handler
 			return ksu_ioctl_handlers[i].handler(filp, argp);
 		}
