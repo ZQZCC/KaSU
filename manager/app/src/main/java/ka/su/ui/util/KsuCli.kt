@@ -198,19 +198,24 @@ fun flashModule(
     onStdout: (String) -> Unit,
     onStderr: (String) -> Unit
 ): FlashResult {
-    val resolver = ksuApp.contentResolver
-    with(resolver.openInputStream(uri)) {
-        val file = File(ksuApp.cacheDir, "module.zip")
-        file.outputStream().use { output ->
-            this?.copyTo(output)
-        }
-        val cmd = "module install ${file.absolutePath}"
+    var file: File? = null
+    try {
+        val zip = File.createTempFile("module-", ".zip", ksuApp.cacheDir)
+        file = zip
+        val input = ksuApp.contentResolver.openInputStream(uri) ?: throw IOException("Cannot open $uri")
+        input.use { source -> zip.outputStream().use { source.copyTo(it) } }
+        val cmd = "module install ${zip.absolutePath}"
         val result = flashWithIO("${getKsuDaemonPath()} $cmd", onStdout, onStderr)
         Log.i("KernelSU", "install module $uri result: $result")
-
-        file.delete()
-
         return FlashResult(result)
+    } catch (e: IOException) {
+        onStderr(e.toString())
+        return FlashResult(1, e.toString(), false)
+    } catch (e: SecurityException) {
+        onStderr(e.toString())
+        return FlashResult(1, e.toString(), false)
+    } finally {
+        file?.delete()
     }
 }
 
