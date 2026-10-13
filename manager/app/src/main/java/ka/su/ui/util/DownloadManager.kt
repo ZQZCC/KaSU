@@ -43,7 +43,19 @@ object DownloadManager {
         val existing = _downloads.value.values.find {
             it.url == url && (it.status == Status.PENDING || it.status == Status.DOWNLOADING)
         }
-        if (existing != null) return existing.id
+        if (existing != null) {
+            if (onCompleted != null) {
+                completionCallbacks.merge(existing.id, onCompleted) { a, b -> { uri -> a(uri); b(uri) } }
+                // Completion may race with callback registration.
+                val now = _downloads.value[existing.id]
+                if (now?.status == Status.COMPLETED && now.resultUri != null) {
+                    completionCallbacks.remove(existing.id)?.let { callback -> mainHandler.post { callback(now.resultUri) } }
+                } else if (now?.status == Status.FAILED) {
+                    completionCallbacks.remove(existing.id)
+                }
+            }
+            return existing.id
+        }
 
         val id = idCounter.incrementAndGet()
         val state = DownloadState(id = id, fileName = fileName, url = url)
