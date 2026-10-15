@@ -396,27 +396,11 @@ static int selinux_hide_feature_set(u64 value)
 	return ret;
 }
 
-static const struct ksu_feature_handler selinux_hide_handler = {
-	.feature_id = KSU_FEATURE_SELINUX_HIDE,
-	.name = "selinux_hide",
-	.get_handler = selinux_hide_feature_get,
-	.set_handler = selinux_hide_feature_set,
-};
-
 void __init ksu_selinux_hide_init()
 {
 	ksu_selinux_hide_alloc_hazptr_slot();
 
 	// we init this on a kthread
 	kthread_run(ksu_selinux_hide_init_thread, NULL, "kthread");
-
-	if (ksu_register_feature_handler(&selinux_hide_handler)) {
-		pr_err("Failed to register selinux_hide feature handler\n");
-	}
-}
-
-void __exit ksu_selinux_hide_exit()
-{
-	ksu_unregister_feature_handler(KSU_FEATURE_SELINUX_HIDE);
 }
 

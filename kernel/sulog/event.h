@@ -3,7 +3,7 @@
 
 struct ksu_event_queue;
 
-int ksu_sulog_events_init(void);
+void ksu_sulog_events_init(void);
 void ksu_sulog_events_exit(void);
 
 static int ksu_sulog_emit_grant_root(int retval, __u32 uid, __u32 euid, gfp_t gfp);

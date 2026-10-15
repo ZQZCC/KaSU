@@ -40,7 +40,6 @@
 #include "infra/file_wrapper.h"
 #include "infra/event_queue.h"
 #include "feature/selinux_hide.h"
-#include "feature/sucompat.h"
 #include "feature/sulog.h"
 #include "hook/tinyfs_sucompat.h"
 #include "runtime/ksud.h"
@@ -59,7 +58,6 @@
 #include "manager/manager_identity.c"
 #include "policy/allowlist.c"
 #include "policy/app_profile.c"
-#include "policy/feature.c"
 #include "manager/pkg_observer.c"
 
 #include "supercall/perm.c"
@@ -76,6 +74,7 @@
 #include "hook/tinyfs_sucompat.c"
 #endif
 #include "feature/sulog.c"
+#include "policy/feature.c"
 #include "runtime/ksud.c"
 
 #include "sulog/event.c"
@@ -145,16 +144,12 @@ static int __init kernelsu_init(void)
 		return -ENOSYS;
 	}
 
-	ksu_feature_init();
-
 	ksu_supercalls_init();
 
-	ksu_sucompat_init(); // so the feature is registered
-
-	ksu_selinux_hide_init(); // so the feature is registered
+	ksu_selinux_hide_init();
 
 #ifdef CONFIG_KSU_FEATURE_SULOG	
-	ksu_sulog_init(); // so the feature is registered
+	ksu_sulog_init();
 #endif
 
 	ksu_core_init();

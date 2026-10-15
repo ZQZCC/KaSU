@@ -17,10 +17,9 @@ static void ksu_sulog_fill_task_info(struct ksu_sulog_event *event, __u16 event_
 	get_task_comm(event->comm, current);
 }
 
-int ksu_sulog_events_init(void)
+void ksu_sulog_events_init(void)
 {
 	ksu_event_queue_init(&sulog_queue, KSU_SULOG_MAX_QUEUED, KSU_SULOG_MAX_PAYLOAD_LEN);
-	return 0;
 }
 
 void ksu_sulog_events_exit(void)
