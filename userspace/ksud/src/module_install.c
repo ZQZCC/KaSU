@@ -2,6 +2,7 @@
 #define _GNU_SOURCE
 #include "file.h"
 #include "native.h"
+#include "paths.h"
 #include "text.h"
 
 #include <android/log.h>
@@ -103,6 +104,7 @@ int ksu_install_module(const char *zip, const char *shell, const char *module_di
 	struct ksu_string_map properties = {0};
 	char *id = NULL, *updated = NULL, *module = NULL, *system = NULL;
 	char *source = NULL, *destination = NULL, *marker = NULL, *script = NULL, *zip_env = NULL;
+	char *hot_marker = NULL;
 	int result = -1;
 	*message = NULL;
 	struct ksu_zip *archive = ksu_zip_open(zip);
@@ -155,6 +157,9 @@ int ksu_install_module(const char *zip, const char *shell, const char *module_di
 	fflush(stdout);
 	if (ksu_zip_extract(archive, updated))
 		goto done;
+	hot_marker = ksu_join_path(updated, KSU_HOT_INSTALL_MARKER);
+	if (!hot_marker || (unlink(hot_marker) && errno != ENOENT))
+		goto done;
 	ksu_zip_close(archive);
 	archive = NULL;
 	system = ksu_join_path(updated, "system");
@@ -176,10 +181,21 @@ int ksu_install_module(const char *zip, const char *shell, const char *module_di
 		goto done;
 	}
 	module = ksu_join_path(module_directory, id);
+	if (!module)
+		goto done;
+	int hot = ksu_hot_install(shell, updated, module, id, is_meta);
+	if (hot < 0)
+		goto done;
+	if (hot)
+		goto installed;
+	free(hot_marker);
+	hot_marker = ksu_join_path(module, KSU_HOT_INSTALL_MARKER);
+	if (!hot_marker || (unlink(hot_marker) && errno != ENOENT))
+		goto done;
 	source = ksu_join_path(updated, "module.prop");
-	destination = module ? ksu_join_path(module, "module.prop") : NULL;
-	marker = module ? ksu_join_path(module, "update") : NULL;
-	if (!module || !source || !destination || !marker || ksu_mkdirs(module) ||
+	destination = ksu_join_path(module, "module.prop");
+	marker = ksu_join_path(module, "update");
+	if (!source || !destination || !marker || ksu_mkdirs(module) ||
 	    ksu_copy_file(source, destination) || ksu_ensure_file(marker))
 		goto done;
 	if (is_meta) {
@@ -197,13 +213,16 @@ int ksu_install_module(const char *zip, const char *shell, const char *module_di
 		if (linked)
 			goto done;
 	}
-	puts("- Module installed successfully!");
+installed:
+	puts(hot ? "- Module installed successfully, no reboot required!"
+		 : "- Module installed successfully!");
 	__android_log_print(ANDROID_LOG_INFO, "KernelSU", "Module %s installed successfully!", id);
 	result = 0;
 done:
 	int error = errno;
 	fflush(stdout);
 	free(zip_env);
+	free(hot_marker);
 	free(script);
 	free(marker);
 	free(destination);

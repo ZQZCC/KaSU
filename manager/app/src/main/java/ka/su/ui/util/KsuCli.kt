@@ -18,6 +18,7 @@ import ka.su.ksuApp
 import org.json.JSONArray
 import java.io.File
 import java.io.IOException
+import java.util.zip.ZipFile
 
 /**
  * @author weishu
@@ -208,7 +209,7 @@ fun flashModule(
         val cmd = "module install ${zip.absolutePath}"
         val result = flashWithIO("${getKsuDaemonPath()} $cmd", onStdout, onStderr)
         Log.i("KernelSU", "install module $uri result: $result")
-        return FlashResult(result)
+        return FlashResult(result, result.isSuccess && moduleNeedsReboot(zip))
     } catch (e: IOException) {
         onStderr(e.toString())
         return FlashResult(1, e.toString(), false)
@@ -218,6 +219,22 @@ fun flashModule(
     } finally {
         file?.delete()
     }
+}
+
+private val MODULE_ID_REGEX = Regex("^[a-zA-Z][a-zA-Z0-9._-]+$")
+
+private fun moduleNeedsReboot(zip: File): Boolean {
+    val id = runCatching {
+        ZipFile(zip).use { archive ->
+            val entry = archive.getEntry("module.prop") ?: return@use null
+            archive.getInputStream(entry).bufferedReader().useLines { lines ->
+                lines.map { it.trim() }.firstOrNull { it.startsWith("id=") }?.substringAfter('=')?.trim()
+            }
+        }
+    }.getOrNull()
+    if (id == null || !MODULE_ID_REGEX.matches(id)) return true
+    val dir = "/data/adb/modules/$id"
+    return !ShellUtils.fastCmdResult(getRootShell(), "[ -d $dir ] && [ ! -e $dir/update ]")
 }
 
 fun flashAnyKernel(
