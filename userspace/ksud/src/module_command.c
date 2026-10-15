@@ -45,8 +45,6 @@ static int install(const char *zip, char **message)
 int ksu_module_run(enum ksu_module_command command, const char *value, char **message)
 {
 	*message = NULL;
-	if (command == KSU_MODULE_CMD_LIST)
-		return ksu_list_modules(KSU_MODULE_DIR, KSU_MODULE_CONFIG_DIR);
 	if (command != KSU_MODULE_CMD_INSTALL && command != KSU_MODULE_CMD_DISABLE &&
 	    !ksu_valid_identifier((const unsigned char *)value, strlen(value))) {
 		asprintf(message, "Invalid module ID: '%s'. Must match /^[a-zA-Z][a-zA-Z0-9._-]+$/",

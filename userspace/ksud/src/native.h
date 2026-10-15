@@ -116,7 +116,7 @@ int ksu_module_run(enum ksu_module_command command, const char *value, char **me
 int ksu_install_userspace(void);
 int ksu_prune_modules(const char *shell, const char *module_directory, const char *metamodule_link,
 		      const char *config_directory);
-int ksu_list_modules(const char *directory, const char *config_directory);
+int ksu_list_modules(const char *directory, const char *config_directory, int with_size);
 int ksu_regenerate_rc(const char *common_directory, const char *module_directory,
 		      const char *update_directory, const char *preinit_directory);
 
