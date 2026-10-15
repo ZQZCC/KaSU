@@ -166,9 +166,9 @@ static int set_context(const char *context)
 	return 0;
 }
 
-int ksu_su_main(int argc, char **argv)
+int ksu_su_main(int argc, char **argv, const char *inherited_fd)
 {
-	if (ksu_claim_driver_fd()) {
+	if (ksu_claim_driver_fd(inherited_fd)) {
 		perror("claim inherited KernelSU driver fd");
 		return 1;
 	}

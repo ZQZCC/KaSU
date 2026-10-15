@@ -525,8 +525,12 @@ int ksu_cli_main(int argc, char **argv)
 {
 	const char *name = strrchr(argv[0], '/');
 	name = name ? name + 1 : argv[0];
-	if (!strcmp(name, "su"))
-		return ksu_su_main(argc, argv);
+	if (!strcmp(name, "su") || !strncmp(name, "su:", 3)) {
+		const char *inherited_fd = name[2] == ':' ? name + 3 : NULL;
+		if (inherited_fd)
+			argv[0] = "su";
+		return ksu_su_main(argc, argv, inherited_fd);
+	}
 	size_t name_length = strlen(name);
 	if (name_length >= 9 && !strcmp(name + name_length - 9, "resetprop"))
 		return ksu_resetprop_main(argc, argv);
