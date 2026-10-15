@@ -14,7 +14,7 @@ static int do_grant_root(const struct file *filp, void __user *arg)
 	ret = escape_with_root_profile_ref(profile);
 
 #ifdef CONFIG_KSU_FEATURE_SULOG
-	ksu_sulog_emit_grant_root(ret, audit_uid, audit_euid, GFP_KERNEL);
+	ksu_sulog_emit_grant_root(ret, audit_uid, audit_euid);
 #endif
 	return ret;
 }
@@ -514,7 +514,11 @@ static int do_get_sulog_fd(const struct file *filp, void __user *arg)
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_KSU_FEATURE_SULOG
 	return ksu_install_sulog_fd();
+#else
+	return -EOPNOTSUPP;
+#endif
 }
 
 static int do_disable_escape_to_root(const struct file *filp, void __user *arg)

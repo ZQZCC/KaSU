@@ -3,12 +3,12 @@ static bool ksu_sulog_fd_active;
 
 static ssize_t ksu_sulog_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
-	return ksu_event_queue_read(ksu_sulog_get_queue(), buf, count, file->f_flags);
+	return ksu_sulog_queue_read(buf, count, file->f_flags);
 }
 
 static unsigned __bitwise ksu_sulog_poll(struct file *file, poll_table *wait)
 {
-	return ksu_event_queue_poll(ksu_sulog_get_queue(), file, wait);
+	return ksu_sulog_queue_poll(file, wait);
 }
 
 static int ksu_sulog_release(struct inode *inode, struct file *file)
@@ -41,11 +41,6 @@ int ksu_install_sulog_fd(void)
 		goto out_unlock;
 	}
 
-	if (READ_ONCE(ksu_sulog_get_queue()->closed)) {
-		fd = -EPIPE;
-		goto out_unlock;
-	}
-
 	fd = get_unused_fd_flags(O_CLOEXEC);
 	if (fd < 0)
 		goto out_unlock;
@@ -64,20 +59,4 @@ int ksu_install_sulog_fd(void)
 out_unlock:
 	mutex_unlock(&ksu_sulog_fd_lock);
 	return fd;
-}
-
-void ksu_sulog_fd_init(void)
-{
-	mutex_lock(&ksu_sulog_fd_lock);
-	ksu_sulog_fd_active = false;
-	mutex_unlock(&ksu_sulog_fd_lock);
-}
-
-void ksu_sulog_fd_exit(void)
-{
-	mutex_lock(&ksu_sulog_fd_lock);
-	ksu_sulog_fd_active = false;
-	mutex_unlock(&ksu_sulog_fd_lock);
-
-	ksu_event_queue_close(ksu_sulog_get_queue());
 }

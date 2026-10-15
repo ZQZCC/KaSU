@@ -24,16 +24,3 @@ bool ksu_sulog_is_enabled(void)
 {
 	return ksu_sulog_enabled;
 }
-
-void __init ksu_sulog_init(void)
-{
-	ksu_sulog_enabled = false;
-	ksu_sulog_events_init();
-	ksu_sulog_fd_init();
-}
-
-void __exit ksu_sulog_exit(void)
-{
-	ksu_sulog_fd_exit();
-	ksu_sulog_events_exit();
-}

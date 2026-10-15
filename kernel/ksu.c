@@ -38,13 +38,14 @@
 #include "supercall/supercall.h"
 #include "infra/su_mount_ns.h"
 #include "infra/file_wrapper.h"
-#include "infra/event_queue.h"
 #include "feature/selinux_hide.h"
 #include "feature/sulog.h"
 #include "hook/tinyfs_sucompat.h"
 #include "runtime/ksud.h"
+#ifdef CONFIG_KSU_FEATURE_SULOG
 #include "sulog/event.h"
 #include "sulog/fd.h"
+#endif
 
 #include "selinux/selinux.h"
 #include "selinux/sepolicy.h"
@@ -66,19 +67,25 @@
 
 #include "infra/su_mount_ns.c"
 #include "infra/file_wrapper.c"
-#include "infra/event_queue.c"
+#ifdef CONFIG_KSU_FEATURE_SULOG
+#include "sulog/queue.c"
+#endif
 
 #include "feature/selinux_hide.c"
 #include "feature/sucompat.c"
 #ifdef CONFIG_KSU_TINYFS_SUCOMPAT
 #include "hook/tinyfs_sucompat.c"
 #endif
+#ifdef CONFIG_KSU_FEATURE_SULOG
 #include "feature/sulog.c"
+#endif
 #include "policy/feature.c"
 #include "runtime/ksud.c"
 
+#ifdef CONFIG_KSU_FEATURE_SULOG
 #include "sulog/event.c"
 #include "sulog/fd.c"
+#endif
 
 #include "hook/lsm_hooks_manual.c"
 
@@ -147,10 +154,6 @@ static int __init kernelsu_init(void)
 	ksu_supercalls_init();
 
 	ksu_selinux_hide_init();
-
-#ifdef CONFIG_KSU_FEATURE_SULOG	
-	ksu_sulog_init();
-#endif
 
 	ksu_core_init();
 

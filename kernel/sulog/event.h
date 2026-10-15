@@ -1,12 +1,7 @@
 #ifndef __KSU_H_SULOG_EVENT
 #define __KSU_H_SULOG_EVENT
 
-struct ksu_event_queue;
-
-void ksu_sulog_events_init(void);
-void ksu_sulog_events_exit(void);
-
-static int ksu_sulog_emit_grant_root(int retval, __u32 uid, __u32 euid, gfp_t gfp);
+static void ksu_sulog_emit_grant_root(int retval, __u32 uid, __u32 euid);
 static noinline void do_ksu_sulog_emit_bprm(const char *filename);
 
 #ifdef KSU_CAN_USE_JUMP_LABEL // see kernel_compat.h
@@ -32,7 +27,5 @@ static inline void ksu_sulog_branch_enable() { } // no-op
 static inline void ksu_sulog_branch_disable() { } // no-op
 
 #endif  /* !KSU_CAN_USE_JUMP_LABEL */
-
-struct ksu_event_queue *ksu_sulog_get_queue(void);
 
 #endif
