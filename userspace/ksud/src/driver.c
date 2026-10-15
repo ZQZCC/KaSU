@@ -48,10 +48,22 @@ static int scan_driver_fd(int *found)
 	return 0;
 }
 
-int ksu_claim_driver_fd(void)
+int ksu_claim_driver_fd(const char *inherited_fd)
 {
 	/* Called at the single-threaded su entry, before any ioctl. */
-	return scan_driver_fd(&driver_fd);
+	if (!inherited_fd)
+		return scan_driver_fd(&driver_fd);
+	char *end;
+	errno = 0;
+	long fd = strtol(inherited_fd, &end, 10);
+	if (*inherited_fd < '0' || *inherited_fd > '9' || *end || errno || fd > INT32_MAX) {
+		errno = EINVAL;
+		return -1;
+	}
+	if (fcntl((int)fd, F_GETFD) < 0)
+		return -1;
+	driver_fd = (int)fd;
+	return 0;
 }
 
 static void init_driver_fd(void)

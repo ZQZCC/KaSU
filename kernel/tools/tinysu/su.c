@@ -31,7 +31,19 @@ void tinysu_main(long *stack)
 	if (raw_syscall3(SYS_ioctl, fd, KSU_IOCTL_GRANT_ROOT, 0) < 0)
 		goto fail;
 
+	char name[14];
+	char *program = name + sizeof(name) - 1;
+	unsigned int number = fd;
+	*program = '\0';
+	do {
+		*--program = '0' + number % 10;
+	} while (number /= 10);
+	*--program = ':';
+	*--program = 'u';
+	*--program = 's';
+	argv[0] = program;
 	raw_syscall3(SYS_execve, (long)ksud, (long)argv, (long)envp);
+	argv[0] = "su";
 	raw_syscall3(SYS_execve, (long)shell, (long)argv, (long)envp);
 
 fail:

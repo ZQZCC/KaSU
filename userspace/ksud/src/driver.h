@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-int ksu_claim_driver_fd(void);
+int ksu_claim_driver_fd(const char *inherited_fd);
 int ksu_driver_fd(void);
 int ksu_ioctl(uint32_t request, void *arg);
 struct ksu_get_info_cmd;

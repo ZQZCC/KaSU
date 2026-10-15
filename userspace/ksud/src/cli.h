@@ -10,7 +10,7 @@ bool ksu_option_known(const char *arg, const char *shorts, const struct option *
 
 int ksu_cli_main(int argc, char **argv);
 int ksu_resetprop_main(int argc, char **argv);
-int ksu_su_main(int argc, char **argv);
+int ksu_su_main(int argc, char **argv, const char *inherited_fd);
 int ksu_debug_su(int global_mnt);
 int ksu_debug_manager(const char *package);
 int ksu_debug_mark(unsigned operation, int32_t pid);
