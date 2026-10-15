@@ -21,6 +21,8 @@
 #define KSU_MODULE_UPDATE_DIR KSU_ADB_DIR "/modules_update"
 #define KSU_METAMODULE_DIR KSU_ADB_DIR "/metamodule/"
 #define KSU_MODULE_CONFIG_DIR KSU_WORKING_DIR "/module_configs"
+#define KSU_HOT_INSTALL_MARKER ".ksu_hot_install"
+#define KSU_HOT_INSTALL_TRASH_DIR KSU_WORKING_DIR "/hot_install_trash"
 #define KSU_PREINIT_WATCHDOG KSU_METADATA_DIR "/watchdog/ksu"
 #define KSU_PREINIT_DEFAULT KSU_METADATA_DIR "/ksu"
 

@@ -382,6 +382,7 @@ int ksu_post_fs_data(void)
 		common_stage(KSU_STAGE_POST_FS_DATA, deadline);
 	if (ksu_assets_ensure(KSU_BINARY_DIR, KSU_DAEMON_PATH, true))
 		return -1;
+	warn_failed(ksu_clean_hot_install_trash(), "clean hot install trash");
 	if (safe) {
 		LOG(ANDROID_LOG_WARN,
 		    "safe mode, skip post-fs-data scripts and disable all modules!");

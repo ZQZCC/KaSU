@@ -43,6 +43,9 @@ int ksu_restore_syscon(const char *root, int only_unlabeled);
 int ksu_install_module(const char *zip, const char *shell, const char *module_directory,
 		       const char *update_directory, const char *metamodule_link,
 		       const char *library, char **message);
+int ksu_hot_install(const char *shell, const char *staged, const char *live, const char *id,
+		    int is_metamodule);
+int ksu_clean_hot_install_trash(void);
 int ksu_sepolicy(const unsigned char *data, size_t length, int check_only, char **message);
 int ksu_sepolicy_file(const char *path, int check_only, char **message);
 int ksu_sulog_daemon(const char *working_directory, const char *log_directory,

@@ -39,7 +39,7 @@ add_executable(ksud
     src/file.c src/label.c src/text.c src/properties.c src/config.c src/feature.c
     src/profile.c src/sepolicy.c src/sulog.c
     src/prop_context.c src/prop_persist.c src/prop_area.c src/prop.c
-    src/module_state.c src/module_install.c src/module_command.c src/module_cleanup.c
+    src/module_state.c src/module_install.c src/hot_install.c src/module_command.c src/module_cleanup.c
     src/module_query.c src/module_rc.c src/metamodule.c src/script.c src/json.c src/assets.c
     "${OUTPUT_DIR}/assets.S" "${OUTPUT_DIR}/assets.c")
 target_include_directories(ksud PRIVATE ../.. src "${ksud_yyjson_SOURCE_DIR}/src"
