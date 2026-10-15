@@ -125,11 +125,12 @@ fun install() {
     Log.w(TAG, "install result: $result, cost: ${SystemClock.elapsedRealtime() - start}ms")
 }
 
-fun listModules(): String {
+fun listModules(includeSize: Boolean = false): String {
     val shell = getRootShell()
+    val option = if (includeSize) " --size" else ""
 
     val out = shell.newJob()
-        .add("${getKsuDaemonPath()} module list").to(ArrayList(), null).exec().out
+        .add("${getKsuDaemonPath()} module list$option").to(ArrayList(), null).exec().out
     return out.joinToString("\n").ifBlank { "[]" }
 }
 

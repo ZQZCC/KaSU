@@ -20,7 +20,7 @@
 #include <string.h>
 #include <unistd.h>
 
-enum { OPT_TEMP = 1, OPT_STDIN = 2, OPT_CONFIG = 4, OPT_GLOBAL = 8 };
+enum { OPT_TEMP = 1, OPT_STDIN = 2, OPT_CONFIG = 4, OPT_GLOBAL = 8, OPT_SIZE = 16 };
 
 struct arguments {
 	char *value[2];
@@ -98,10 +98,13 @@ static int usage(const char *command, const char *arguments, bool error)
 static int parse(int argc, char **argv, const char *command, const char *syntax, unsigned allowed,
 		 unsigned minimum, unsigned maximum, struct arguments *args)
 {
-	static const struct option options[] = {
-	    {"help", no_argument, NULL, 'h'},	    {"temp", no_argument, NULL, 't'},
-	    {"stdin", no_argument, NULL, 's'},	    {"config", no_argument, NULL, 'c'},
-	    {"global-mnt", no_argument, NULL, 'g'}, {NULL, 0, NULL, 0}};
+	static const struct option options[] = {{"help", no_argument, NULL, 'h'},
+						{"temp", no_argument, NULL, 't'},
+						{"stdin", no_argument, NULL, 's'},
+						{"config", no_argument, NULL, 'c'},
+						{"global-mnt", no_argument, NULL, 'g'},
+						{"size", no_argument, NULL, 'S'},
+						{NULL, 0, NULL, 0}};
 	*args = (struct arguments){0};
 	unsigned seen = 0;
 	opterr = 0;
@@ -109,9 +112,9 @@ static int parse(int argc, char **argv, const char *command, const char *syntax,
 	int option;
 	for (;;) {
 		int next = optind ? optind : 1;
-		if (next < argc && !ksu_option_known(argv[next], "htcg", options))
+		if (next < argc && !ksu_option_known(argv[next], "htcgS", options))
 			return usage(command, syntax, true);
-		option = getopt_long(argc, argv, "-:htcg", options, NULL);
+		option = getopt_long(argc, argv, "-:htcgS", options, NULL);
 		if (option == -1)
 			break;
 		if (option == 'h')
@@ -135,6 +138,9 @@ static int parse(int argc, char **argv, const char *command, const char *syntax,
 			break;
 		case 'g':
 			flag = OPT_GLOBAL;
+			break;
+		case 'S':
+			flag = OPT_SIZE;
 			break;
 		default:
 			return usage(command, syntax, true);
@@ -278,12 +284,16 @@ static int module_command(int argc, char **argv, char **message)
 	}
 	struct arguments args;
 	unsigned count = cmd != KSU_MODULE_CMD_LIST;
-	int result = parse(argc - 1, argv + 1, "module", count ? "<COMMAND> VALUE" : "list", 0,
-			   count, count, &args);
+	int result =
+	    parse(argc - 1, argv + 1, "module", count ? "<COMMAND> VALUE" : "list [--size]",
+		  count ? 0 : OPT_SIZE, count, count, &args);
 	if (result)
 		return result;
 	if (ksu_switch_mnt_ns(1))
 		return -1;
+	if (cmd == KSU_MODULE_CMD_LIST)
+		return ksu_list_modules(KSU_MODULE_DIR, KSU_MODULE_CONFIG_DIR,
+					args.flags & OPT_SIZE);
 	return ksu_module_run((enum ksu_module_command)cmd, args.value[0], message);
 }
 

@@ -1,12 +1,10 @@
 package ka.su.data.repository
 
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import ka.su.data.model.Module
 import ka.su.data.model.ModuleUpdateInfo
 import ka.su.ksuApp
-import ka.su.ui.util.getRootShell
 import ka.su.ui.util.isNetworkAvailable
 import ka.su.ui.util.listModules
 import ka.su.ui.util.module.sanitizeVersionString
@@ -16,13 +14,9 @@ import org.json.JSONObject
 
 class ModuleRepositoryImpl : ModuleRepository {
 
-    companion object {
-        private const val TAG = "ModuleRepository"
-    }
-
     override suspend fun getModules(): Result<List<Module>> = withContext(Dispatchers.IO) {
         runCatching {
-            val result = listModules()
+            val result = listModules(includeSize = true)
             val array = JSONArray(result)
             (0 until array.length())
                 .asSequence()
@@ -43,41 +37,12 @@ class ModuleRepositoryImpl : ModuleRepository {
                         hasWebUi = obj.optBoolean("web"),
                         hasActionScript = obj.optBoolean("action"),
                         metamodule = (obj.optInt("metamodule") != 0) || obj.optBoolean("metamodule"),
-                        size = getModuleSizeLabel(id),
+                        size = obj.optLong("sizeBytes").takeIf { it > 0 }?.let(::formatModuleSize).orEmpty(),
                         actionIconPath = obj.optString("actionIcon").takeIf { it.isNotBlank() },
                         webUiIconPath = obj.optString("webuiIcon").takeIf { it.isNotBlank() }
                     )
                 }.toList()
         }
-    }
-
-    private fun getModuleSizeLabel(id: String): String {
-        val busybox = "/data/adb/ksu/bin/busybox"
-        val path = "/data/adb/modules/$id"
-        val command = "$busybox find ${shellQuote(path)} -type f -exec $busybox stat -c %s {} \\; | " +
-                "$busybox awk '{ total += ${'$'}1 } END { print total + 0 }'"
-        return runCatching {
-            val out = getRootShell().newJob()
-                .add(command)
-                .to(ArrayList<String>(), null)
-                .exec()
-                .out
-            val bytes = out.firstOrNull()
-                ?.trim()
-                ?.split(Regex("\\s+"))
-                ?.firstOrNull()
-                ?.toLongOrNull()
-                ?: return ""
-            if (bytes <= 0L) return ""
-            formatModuleSize(bytes)
-        }.getOrElse {
-            Log.w(TAG, "Failed to calculate module size: $id", it)
-            ""
-        }
-    }
-
-    private fun shellQuote(value: String): String {
-        return "'${value.replace("'", "'\"'\"'")}'"
     }
 
     private fun formatModuleSize(bytes: Long): String {

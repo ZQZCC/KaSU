@@ -8,6 +8,7 @@
 
 #include <dirent.h>
 #include <errno.h>
+#include <fts.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -184,7 +185,36 @@ static bool apply_module_config(yyjson_mut_doc *doc, yyjson_mut_val *object, yyj
 	return valid;
 }
 
-int ksu_list_modules(const char *directory, const char *config_directory)
+static uint64_t module_size(char *path)
+{
+	char *paths[] = {path, NULL};
+	FTS *tree = fts_open(paths, FTS_PHYSICAL | FTS_NOCHDIR, NULL);
+	uint64_t size = 0;
+	if (!tree) {
+		perror(path);
+		return 0;
+	}
+	for (;;) {
+		errno = 0;
+		FTSENT *entry = fts_read(tree);
+		if (!entry) {
+			if (errno)
+				perror(path);
+			break;
+		}
+		if (entry->fts_info == FTS_F)
+			size += entry->fts_statp->st_size;
+		else if (entry->fts_info == FTS_ERR || entry->fts_info == FTS_DNR ||
+			 entry->fts_info == FTS_NS) {
+			errno = entry->fts_errno;
+			perror(entry->fts_path);
+		}
+	}
+	fts_close(tree);
+	return size;
+}
+
+int ksu_list_modules(const char *directory, const char *config_directory, int with_size)
 {
 	yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
 	yyjson_mut_val *array = doc ? yyjson_mut_arr(doc) : NULL;
@@ -250,6 +280,11 @@ int ksu_list_modules(const char *directory, const char *config_directory)
 		valid = valid && resolve_icon(doc, object, "actionIcon", path) &&
 			resolve_icon(doc, object, "webuiIcon", path);
 		valid = valid && apply_module_config(doc, object, id, config_directory);
+		if (valid && with_size) {
+			yyjson_mut_val *size = yyjson_mut_uint(doc, module_size(path));
+			valid = size &&
+				yyjson_mut_obj_put(object, yyjson_mut_str(doc, "sizeBytes"), size);
+		}
 		free(path);
 		if (!valid)
 			goto out;
