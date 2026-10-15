@@ -314,7 +314,8 @@ int ksu_feature_modules_run(enum ksu_feature_command command, const char *name, 
 {
 	struct module_config *configs = NULL;
 	bool needs_modules = command == KSU_FEATURE_SET || command == KSU_FEATURE_LIST ||
-			     command == KSU_FEATURE_CHECK || command == KSU_FEATURE_INIT;
+			     command == KSU_FEATURE_CHECK || command == KSU_FEATURE_INIT ||
+			     command == KSU_FEATURE_SNAPSHOT;
 	if (needs_modules && load_configs(config_directory, module_directory, &configs)) {
 		free_configs(configs);
 		configs = NULL;

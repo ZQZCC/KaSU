@@ -353,13 +353,14 @@ static int profile_command(int argc, char **argv, char **message)
 static int feature_command(int argc, char **argv)
 {
 	help_command(argc, argv);
-	static const char *const names[] = {"get", "set", "list", "check", "load", "save"};
-	static const enum ksu_feature_command commands[] = {KSU_FEATURE_GET,  KSU_FEATURE_SET,
-							    KSU_FEATURE_LIST, KSU_FEATURE_CHECK,
-							    KSU_FEATURE_LOAD, KSU_FEATURE_SAVE};
+	static const char *const names[] = {"get",  "set",  "list",    "check",
+					    "load", "save", "snapshot"};
+	static const enum ksu_feature_command commands[] = {
+	    KSU_FEATURE_GET,  KSU_FEATURE_SET,	KSU_FEATURE_LIST,    KSU_FEATURE_CHECK,
+	    KSU_FEATURE_LOAD, KSU_FEATURE_SAVE, KSU_FEATURE_SNAPSHOT};
 	int cmd = argc > 1 ? COMMAND_INDEX(argv[1], names) : -1;
 	if (cmd < 0)
-		return usage("feature", "<get|set|list|check|load|save>",
+		return usage("feature", "<get|set|list|check|load|save|snapshot>",
 			     argc == 1 || !is_help(argv[1]));
 	struct arguments args;
 	unsigned count = cmd == 1 ? 2 : cmd == 0 || cmd == 3 ? 1 : 0;

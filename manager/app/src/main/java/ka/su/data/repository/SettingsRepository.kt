@@ -1,5 +1,7 @@
 package ka.su.data.repository
 
+import ka.su.data.model.FeatureSettings
+
 interface SettingsRepository {
     var checkModuleUpdate: Boolean
     var themeMode: Int
@@ -20,26 +22,19 @@ interface SettingsRepository {
     var useSoftReboot: Boolean
     val intentToken: String
 
-    suspend fun getSuCompatStatus(): String
-    suspend fun getSuCompatPersistValue(): Long?
+    suspend fun getFeatureSettings(): FeatureSettings
     fun isSuEnabled(): Boolean
     fun setSuEnabled(enabled: Boolean): Boolean
     fun setSuCompatModePref(mode: Int)
     fun getSuCompatModePref(): Int
 
-    suspend fun getSelinuxHideStatus(): String
     fun isSelinuxHideEnabled(): Boolean
     fun setSelinuxHideEnabled(enabled: Boolean): Int
 
-    suspend fun getHideBootloaderValue(): Long?
     fun setHideBootloaderEnabled(enabled: Boolean): Boolean
 
-    suspend fun getSulogStatus(): String
-    suspend fun getSulogPersistValue(): Long?
     fun setSulogEnabled(enabled: Boolean): Boolean
 
-    suspend fun getAdbRootStatus(): String
-    suspend fun getAdbRootPersistValue(): Long?
     fun setAdbRootEnabled(enabled: Boolean): Boolean
 
 

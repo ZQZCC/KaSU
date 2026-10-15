@@ -149,6 +149,7 @@ enum ksu_feature_command {
 	KSU_FEATURE_LOAD,
 	KSU_FEATURE_SAVE,
 	KSU_FEATURE_INIT,
+	KSU_FEATURE_SNAPSHOT,
 };
 int ksu_feature_run(enum ksu_feature_command command, const char *name, uint64_t value,
 		    const char *directory, const struct ksu_managed_feature *managed, size_t count);

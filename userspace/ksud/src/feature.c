@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #define _GNU_SOURCE
 #include "uapi/feature.h"
+#include "boot.h"
 #include "driver.h"
 #include "file.h"
 #include "native.h"
 #include "uapi/supercall.h"
+#include "yyjson.h"
 
 #include <android/log.h>
 #include <endian.h>
@@ -239,6 +241,64 @@ static int save_kernel_features(const char *directory, const char *path)
 	return result;
 }
 
+static int print_snapshot(const struct feature_config *config,
+			  const struct ksu_managed_feature *managed, size_t count)
+{
+	yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+	if (!doc) {
+		errno = ENOMEM;
+		return -1;
+	}
+	int result = -1;
+	yyjson_mut_val *root = yyjson_mut_obj(doc);
+	yyjson_mut_doc_set_root(doc, root);
+	if (!root)
+		goto no_memory;
+	for (uint32_t id = 0; id < sizeof(features) / sizeof(features[0]); ++id) {
+		if (!features[id].name)
+			continue;
+		uint64_t value;
+		bool supported;
+		const char *status = "";
+		if (!get_feature(id, &value, &supported))
+			status = supported ? "supported" : "unsupported";
+		else
+			fprintf(stderr, "Read feature %s: %s\n", features[id].name,
+				strerror(errno));
+		for (size_t i = 0; i < count; ++i)
+			if (manages(managed + i, id))
+				status = "managed";
+		yyjson_mut_val *configured = yyjson_mut_null(doc);
+		for (size_t i = 0; i < config->count; ++i)
+			if (config->entries[i].id == id)
+				configured = yyjson_mut_uint(doc, config->entries[i].value);
+		yyjson_mut_val *feature = yyjson_mut_obj(doc);
+		if (!feature || !configured ||
+		    !yyjson_mut_obj_add_str(doc, feature, "status", status) ||
+		    !yyjson_mut_obj_add_val(doc, feature, "configured", configured) ||
+		    !yyjson_mut_obj_add_val(doc, root, features[id].name, feature))
+			goto no_memory;
+	}
+	int hide = ksu_bootloader_hide_enabled();
+	if (hide < 0)
+		fprintf(stderr, "Read bootloader hiding setting: %s\n", strerror(errno));
+	yyjson_mut_val *hidden = hide < 0 ? yyjson_mut_null(doc) : yyjson_mut_bool(doc, hide != 0);
+	if (!hidden || !yyjson_mut_obj_add_val(doc, root, "hide_bootloader", hidden))
+		goto no_memory;
+	size_t length;
+	char *json = yyjson_mut_write(doc, 0, &length);
+	if (!json)
+		goto no_memory;
+	result = fwrite(json, 1, length, stdout) == length && fputc('\n', stdout) != EOF ? 0 : -1;
+	free(json);
+	goto out;
+no_memory:
+	errno = ENOMEM;
+out:
+	yyjson_mut_doc_free(doc);
+	return result;
+}
+
 int ksu_feature_run(enum ksu_feature_command command, const char *name, uint64_t value,
 		    const char *directory, const struct ksu_managed_feature *managed, size_t count)
 {
@@ -337,10 +397,15 @@ int ksu_feature_run(enum ksu_feature_command command, const char *name, uint64_t
 		goto done;
 	}
 	if (load_config(path, &config)) {
-		result = -1;
-		goto done;
+		if (command != KSU_FEATURE_SNAPSHOT) {
+			result = -1;
+			goto done;
+		}
+		fprintf(stderr, "Read feature config: %s\n", strerror(errno));
 	}
-	if (command == KSU_FEATURE_GET_CONFIG) {
+	if (command == KSU_FEATURE_SNAPSHOT) {
+		result = print_snapshot(&config, managed, count);
+	} else if (command == KSU_FEATURE_GET_CONFIG) {
 		bool configured = false;
 		for (size_t i = 0; i < config.count; ++i)
 			if (config.entries[i].id == (uint32_t)id) {

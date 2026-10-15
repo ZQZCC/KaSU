@@ -45,34 +45,26 @@ class SettingsViewModel(
 
     fun refresh() {
         viewModelScope.launch {
-            // Async loading for natives/features
-            val suCompatStatus = repo.getSuCompatStatus()
-            val suCompatPersistValue = repo.getSuCompatPersistValue()
+            val features = repo.getFeatureSettings()
             val isSuEnabled = repo.isSuEnabled()
 
-            val suCompatMode = if (suCompatPersistValue == 0L) 2 else if (!isSuEnabled) 1 else 0
+            val suCompatMode = if (features.suCompat.configured == 0L) 2 else if (!isSuEnabled) 1 else 0
 
-            val selinuxHideStatus = repo.getSelinuxHideStatus()
             val isSelinuxHideEnabled = repo.isSelinuxHideEnabled()
-            val hideBootloaderValue = repo.getHideBootloaderValue()
-            val sulogStatus = repo.getSulogStatus()
-            val isSulogEnabled = repo.getSulogPersistValue() == 1L
-            val adbRootStatus = repo.getAdbRootStatus()
-            val isAdbRootEnabled = repo.getAdbRootPersistValue() == 1L
 
             _uiState.update {
                 readPreferences().copy(
                     isLoaded = true,
-                    suCompatStatus = suCompatStatus,
+                    suCompatStatus = features.suCompat.status,
                     suCompatMode = suCompatMode,
                     isSuEnabled = isSuEnabled,
-                    adbRootStatus = adbRootStatus,
-                    isAdbRootEnabled = isAdbRootEnabled,
-                    selinuxHideStatus = selinuxHideStatus,
+                    adbRootStatus = features.adbRoot.status,
+                    isAdbRootEnabled = features.adbRoot.configured == 1L,
+                    selinuxHideStatus = features.selinuxHide.status,
                     isSelinuxHideEnabled = isSelinuxHideEnabled,
-                    isHideBootloaderEnabled = hideBootloaderValue?.let { it == 1L },
-                    sulogStatus = sulogStatus,
-                    isSulogEnabled = isSulogEnabled,
+                    isHideBootloaderEnabled = features.hideBootloaderEnabled,
+                    sulogStatus = features.sulog.status,
+                    isSulogEnabled = features.sulog.configured == 1L,
                 )
             }
         }

@@ -7,12 +7,11 @@ import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.topjohnwu.superuser.ShellUtils
 import ka.su.Natives
+import ka.su.data.model.FeatureSettings
 import ka.su.ksuApp
 import ka.su.ui.screen.modulerepo.RepoSort
 import ka.su.ui.util.execKsud
-import ka.su.ui.util.getFeaturePersistValue
-import ka.su.ui.util.getFeatureStatus
-import ka.su.ui.util.getBootloaderHideValue
+import ka.su.ui.util.getFeatureSettings as readFeatureSettings
 import java.security.SecureRandom
 
 private const val SETTINGS_PREFS = "settings"
@@ -112,9 +111,7 @@ class SettingsRepositoryImpl : SettingsRepository {
         return token
     }
 
-    override suspend fun getSuCompatStatus(): String = getFeatureStatus("su_compat")
-
-    override suspend fun getSuCompatPersistValue(): Long? = getFeaturePersistValue("su_compat")
+    override suspend fun getFeatureSettings(): FeatureSettings = readFeatureSettings()
 
     override fun isSuEnabled(): Boolean = Natives.isSuEnabled()
 
@@ -124,26 +121,14 @@ class SettingsRepositoryImpl : SettingsRepository {
 
     override fun getSuCompatModePref(): Int = prefs.getInt("su_compat_mode", 0)
 
-    override suspend fun getSelinuxHideStatus(): String = getFeatureStatus("selinux_hide")
-
     override fun isSelinuxHideEnabled(): Boolean = Natives.isSelinuxHideEnabled()
 
     override fun setSelinuxHideEnabled(enabled: Boolean): Int = Natives.setSelinuxHideEnabled(enabled)
 
-    override suspend fun getHideBootloaderValue(): Long? = getBootloaderHideValue()
-
     override fun setHideBootloaderEnabled(enabled: Boolean): Boolean =
         execKsud("hide-bootloader ${if (enabled) 1 else 0}", true)
 
-    override suspend fun getSulogStatus(): String = getFeatureStatus("sulog")
-
-    override suspend fun getSulogPersistValue(): Long? = getFeaturePersistValue("sulog")
-
     override fun setSulogEnabled(enabled: Boolean): Boolean = execKsud("feature set sulog ${if (enabled) 1 else 0}", true)
-
-    override suspend fun getAdbRootStatus(): String = getFeatureStatus("adb_root")
-
-    override suspend fun getAdbRootPersistValue(): Long? = getFeaturePersistValue("adb_root")
 
     override fun setAdbRootEnabled(enabled: Boolean): Boolean =
         if (execKsud("feature set adb_root ${if (enabled) 1 else 0}", true)) {

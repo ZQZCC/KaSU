@@ -14,8 +14,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import ka.su.BuildConfig
 import ka.su.Natives
+import ka.su.data.model.FeatureSettings
+import ka.su.data.model.FeatureState
 import ka.su.ksuApp
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.IOException
 import java.util.zip.ZipFile
@@ -99,25 +102,30 @@ fun execKsud(args: String, newShell: Boolean = false, globalMnt: Boolean = false
     }
 }
 
-suspend fun getFeatureStatus(feature: String): String = withContext(Dispatchers.IO) {
-    val shell = getRootShell()
-    val out = shell.newJob()
-        .add("${getKsuDaemonPath()} feature check $feature").to(ArrayList<String>(), null).exec().out
-    out.firstOrNull()?.trim().orEmpty()
-}
-
-suspend fun getFeaturePersistValue(feature: String): Long? = withContext(Dispatchers.IO) {
-    val shell = getRootShell()
-    val out = shell.newJob()
-        .add("${getKsuDaemonPath()} feature get --config $feature").to(ArrayList<String>(), null).exec().out
-    val valueLine = out.firstOrNull { it.trim().startsWith("Value:") } ?: return@withContext null
-    valueLine.substringAfter("Value:").trim().toLongOrNull()
-}
-
-suspend fun getBootloaderHideValue(): Long? = withContext(Dispatchers.IO) {
+suspend fun getFeatureSettings(): FeatureSettings = withContext(Dispatchers.IO) {
     val result = getRootShell().newJob()
-        .add("${getKsuDaemonPath()} hide-bootloader").to(ArrayList<String>(), null).exec()
-    if (result.isSuccess) result.out.singleOrNull()?.trim()?.toLongOrNull() else null
+        .add("${getKsuDaemonPath()} feature snapshot").to(ArrayList<String>(), null).exec()
+    if (!result.isSuccess) {
+        Log.w(TAG, "Read feature settings: ${result.err.joinToString("\n")}")
+        return@withContext FeatureSettings()
+    }
+    runCatching {
+        val json = JSONObject(result.out.joinToString("\n"))
+        fun feature(name: String): FeatureState {
+            val value = json.getJSONObject(name)
+            return FeatureState(value.getString("status"), value.optString("configured").toLongOrNull())
+        }
+        FeatureSettings(
+            suCompat = feature("su_compat"),
+            selinuxHide = feature("selinux_hide"),
+            sulog = feature("sulog"),
+            adbRoot = feature("adb_root"),
+            hideBootloaderEnabled = if (json.isNull("hide_bootloader")) null else json.getBoolean("hide_bootloader"),
+        )
+    }.getOrElse {
+        Log.w(TAG, "Invalid feature settings", it)
+        FeatureSettings()
+    }
 }
 
 fun install() {

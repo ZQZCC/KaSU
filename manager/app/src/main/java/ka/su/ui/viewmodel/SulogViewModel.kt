@@ -75,8 +75,7 @@ class SulogViewModel(
         refreshJob = viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             runCatching {
-                val sulogStatus = repo.getSulogStatus()
-                val isSulogEnabled = repo.getSulogPersistValue() == 1L
+                val features = repo.getFeatureSettings()
                 val files = listSulogFiles()
                 currentCoroutineContext().ensureActive()
                 val selectedFile = when {
@@ -91,8 +90,8 @@ class SulogViewModel(
                 entriesFlow.value = entries
                 SulogUiState(
                     isLoading = false,
-                    sulogStatus = sulogStatus,
-                    isSulogEnabled = isSulogEnabled,
+                    sulogStatus = features.sulog.status,
+                    isSulogEnabled = features.sulog.configured == 1L,
                     searchText = currentState.searchText,
                     selectedFilters = currentState.selectedFilters,
                     files = files,
