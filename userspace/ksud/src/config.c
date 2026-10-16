@@ -43,7 +43,7 @@ int ksu_config_load(const char *path, struct ksu_string_map *config)
 	if (length < 12 || read_u32(data) != CONFIG_MAGIC || read_u32(data + 4) != CONFIG_VERSION)
 		goto invalid;
 	uint32_t count = read_u32(data + 8);
-	if (count > (length - 12) / 8)
+	if (count > KSU_CONFIG_MAX_COUNT || count > (length - 12) / 8)
 		goto invalid;
 	if (count) {
 		config->entries = calloc(count, sizeof(*config->entries));
@@ -57,7 +57,7 @@ int ksu_config_load(const char *path, struct ksu_string_map *config)
 			goto invalid;
 		entry.key_length = read_u32(data + offset);
 		offset += 4;
-		if (entry.key_length > length - offset)
+		if (entry.key_length > KSU_CONFIG_MAX_KEY || entry.key_length > length - offset)
 			goto invalid;
 		entry.key = data + offset;
 		offset += entry.key_length;
@@ -65,7 +65,8 @@ int ksu_config_load(const char *path, struct ksu_string_map *config)
 			goto invalid;
 		entry.value_length = read_u32(data + offset);
 		offset += 4;
-		if (entry.value_length > length - offset)
+		if (entry.value_length > KSU_CONFIG_MAX_VALUE ||
+		    entry.value_length > length - offset)
 			goto invalid;
 		entry.value = data + offset;
 		offset += entry.value_length;
