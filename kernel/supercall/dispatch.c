@@ -308,11 +308,11 @@ static int do_set_app_profile(const struct file *filp, void __user *arg)
 	}
 
 	ret = ksu_set_app_profile(&cmd.profile);
-	if (!ret) {
+	if (ret > 0) {
 		ksu_persistent_allow_list();
 	}
 
-	return ret;
+	return ret < 0 ? ret : 0;
 }
 
 static int do_get_feature(const struct file *filp, void __user *arg)

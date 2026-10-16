@@ -36,6 +36,7 @@ void ksu_get_app_states(struct ksu_app_state *states, u32 count);
 struct app_profile *ksu_get_app_profile(uid_t uid);
 // only used to put the app_profile returned by ksu_get_app_profile
 void ksu_put_app_profile(struct app_profile *);
+/* Returns 1 if changed, 0 for an absent revoke, or a negative errno. */
 int ksu_set_app_profile(struct app_profile *);
 
 struct root_profile *ksu_get_root_profile(uid_t uid);
