@@ -130,16 +130,27 @@ done:;
 int ksu_regenerate_boot_rc(void)
 {
 	struct stat st;
-	bool watchdog = !stat(KSU_METADATA_DIR "/watchdog", &st) && S_ISDIR(st.st_mode);
-	const char *directory = watchdog ? KSU_PREINIT_WATCHDOG : KSU_PREINIT_DEFAULT;
+	bool vold = !stat(KSU_METADATA_DIR "/vold", &st) && S_ISDIR(st.st_mode);
+	bool watchdog = !vold && !stat(KSU_METADATA_DIR "/watchdog", &st) && S_ISDIR(st.st_mode);
+	const char *directory = vold	   ? KSU_PREINIT_VOLD
+				: watchdog ? KSU_PREINIT_WATCHDOG
+					   : KSU_PREINIT_DEFAULT;
 	if (ksu_regenerate_rc(KSU_ADB_DIR "/initrc.d", KSU_MODULE_DIR, KSU_MODULE_UPDATE_DIR,
 			      directory))
 		return -1;
-	const char *output =
-	    watchdog ? KSU_PREINIT_WATCHDOG "/modules.rc" : KSU_PREINIT_DEFAULT "/modules.rc";
-	if (ksu_setfilecon(output, "u:object_r:metadata_file:s0"))
+	const char *output = vold	? KSU_PREINIT_VOLD "/modules.rc"
+			     : watchdog ? KSU_PREINIT_WATCHDOG "/modules.rc"
+					: KSU_PREINIT_DEFAULT "/modules.rc";
+	const char *context =
+	    vold ? "u:object_r:vold_metadata_file:s0" : "u:object_r:metadata_file:s0";
+	if (ksu_setfilecon(output, context))
 		LOG(ANDROID_LOG_DEBUG, "set context on %s failed: %s", output, strerror(errno));
-	unlink(watchdog ? KSU_PREINIT_DEFAULT "/modules.rc" : KSU_PREINIT_WATCHDOG "/modules.rc");
+	if (!vold)
+		unlink(KSU_PREINIT_VOLD "/modules.rc");
+	if (!watchdog)
+		unlink(KSU_PREINIT_WATCHDOG "/modules.rc");
+	if (vold || watchdog)
+		unlink(KSU_PREINIT_DEFAULT "/modules.rc");
 	return 0;
 }
 
