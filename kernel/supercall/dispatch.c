@@ -1,9 +1,9 @@
-static int do_grant_root(const struct file *filp, void __user *arg)
+static int do_grant_root(bool manager, void __user *arg)
 {
 	int ret;
 	__u32 audit_uid = current_uid().val;
 	__u32 audit_euid = current_euid().val;
-	struct root_profile *profile = ksu_get_allowed_root_profile(audit_uid, ksu_is_manager_fd(filp));
+	struct root_profile *profile = ksu_get_allowed_root_profile(audit_uid, manager);
 
 	if (!profile) {
 		pr_warn("ksu ioctl: permission denied for cmd=0x%x uid=%d\n", KSU_IOCTL_GRANT_ROOT, audit_uid);
@@ -19,12 +19,12 @@ static int do_grant_root(const struct file *filp, void __user *arg)
 	return ret;
 }
 
-static int do_get_info(const struct file *filp, void __user *arg)
+static int do_get_info(bool manager, void __user *arg)
 {
 	struct ksu_get_info_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0 };
 
 
-	if (ksu_is_manager_fd(filp)) {
+	if (manager) {
 		cmd.flags |= KSU_GET_INFO_FLAG_MANAGER;
 	}
 	cmd.features = KSU_FEATURE_MAX;
@@ -38,11 +38,11 @@ static int do_get_info(const struct file *filp, void __user *arg)
 	return 0;
 }
 
-static int do_get_info_legacy(const struct file *filp, void __user *arg)
+static int do_get_info_legacy(bool manager, void __user *arg)
 {
 	struct ksu_get_info_legacy_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0 };
 
-	if (ksu_is_manager_fd(filp)) {
+	if (manager) {
 		cmd.flags |= KSU_GET_INFO_FLAG_MANAGER;
 	}
 	cmd.features = KSU_FEATURE_MAX;
@@ -55,7 +55,7 @@ static int do_get_info_legacy(const struct file *filp, void __user *arg)
 	return 0;
 }
 
-static int do_report_event(const struct file *filp, void __user *arg)
+static int do_report_event(bool manager, void __user *arg)
 {
 	static bool services_started = false;
 	struct ksu_report_event_cmd cmd;
@@ -107,7 +107,7 @@ static int do_report_event(const struct file *filp, void __user *arg)
 	return 0;
 }
 
-static int do_set_sepolicy(const struct file *filp, void __user *arg)
+static int do_set_sepolicy(bool manager, void __user *arg)
 {
 	struct ksu_set_sepolicy_cmd cmd;
 
@@ -118,7 +118,7 @@ static int do_set_sepolicy(const struct file *filp, void __user *arg)
 	return handle_sepolicy((void __user *)cmd.data, cmd.data_len);
 }
 
-static int do_check_safemode(const struct file *filp, void __user *arg)
+static int do_check_safemode(bool manager, void __user *arg)
 {
 	struct ksu_check_safemode_cmd cmd;
 
@@ -178,12 +178,12 @@ out:
 	return err;
 }
 
-static int do_new_get_deny_list(const struct file *filp, void __user *arg)
+static int do_new_get_deny_list(bool manager, void __user *arg)
 {
 	return do_new_get_allow_list_common(arg, false);
 }
 
-static int do_new_get_allow_list(const struct file *filp, void __user *arg)
+static int do_new_get_allow_list(bool manager, void __user *arg)
 {
 	return do_new_get_allow_list_common(arg, true);
 }
@@ -229,17 +229,17 @@ out:
 	return err;
 }
 
-static int do_get_deny_list(const struct file *filp, void __user *arg)
+static int do_get_deny_list(bool manager, void __user *arg)
 {
 	return do_get_allow_list_common(arg, false);
 }
 
-static int do_get_allow_list(const struct file *filp, void __user *arg)
+static int do_get_allow_list(bool manager, void __user *arg)
 {
 	return do_get_allow_list_common(arg, true);
 }
 
-static int do_uid_granted_root(const struct file *filp, void __user *arg)
+static int do_uid_granted_root(bool manager, void __user *arg)
 {
 	struct ksu_uid_granted_root_cmd cmd;
 
@@ -257,7 +257,7 @@ static int do_uid_granted_root(const struct file *filp, void __user *arg)
 	return 0;
 }
 
-static int do_get_manager_appid(const struct file *filp, void __user *arg)
+static int do_get_manager_appid(bool manager, void __user *arg)
 {
 	struct ksu_get_manager_appid_cmd cmd;
 
@@ -271,7 +271,7 @@ static int do_get_manager_appid(const struct file *filp, void __user *arg)
 	return 0;
 }
 
-static int do_get_app_profile(const struct file *filp, void __user *arg)
+static int do_get_app_profile(bool manager, void __user *arg)
 {
 	uid_t uid;
 	struct app_profile *profile;
@@ -297,7 +297,7 @@ static int do_get_app_profile(const struct file *filp, void __user *arg)
 	return ret;
 }
 
-static int do_set_app_profile(const struct file *filp, void __user *arg)
+static int do_set_app_profile(bool manager, void __user *arg)
 {
 	struct ksu_set_app_profile_cmd cmd;
 	int ret;
@@ -315,7 +315,7 @@ static int do_set_app_profile(const struct file *filp, void __user *arg)
 	return ret < 0 ? ret : 0;
 }
 
-static int do_get_feature(const struct file *filp, void __user *arg)
+static int do_get_feature(bool manager, void __user *arg)
 {
 	struct ksu_get_feature_cmd cmd;
 	bool supported = false;
@@ -342,7 +342,7 @@ static int do_get_feature(const struct file *filp, void __user *arg)
 	return 0;
 }
 
-static int do_set_feature(const struct file *filp, void __user *arg)
+static int do_set_feature(bool manager, void __user *arg)
 {
 	struct ksu_set_feature_cmd cmd;
 	int ret;
@@ -361,7 +361,7 @@ static int do_set_feature(const struct file *filp, void __user *arg)
 	return 0;
 }
 
-static int do_get_wrapper_fd(const struct file *filp, void __user *arg) {
+static int do_get_wrapper_fd(bool manager, void __user *arg) {
 	if (!ksu_file_sid) {
 		return -EINVAL;
 	}
@@ -397,7 +397,7 @@ static int ksu_get_task_mark(pid_t pid)
 	return ret;
 }
 
-static int do_manage_mark(const struct file *filp, void __user *arg)
+static int do_manage_mark(bool manager, void __user *arg)
 {
 	struct ksu_manage_mark_cmd cmd;
 	int ret = 0;
@@ -439,7 +439,7 @@ static int do_manage_mark(const struct file *filp, void __user *arg)
 	return 0;
 }
 
-static int do_nuke_ext4_sysfs(const struct file *filp, void __user *arg)
+static int do_nuke_ext4_sysfs(bool manager, void __user *arg)
 {
 	struct ksu_nuke_ext4_sysfs_cmd cmd;
 	char mnt[256];
@@ -470,7 +470,7 @@ static int do_nuke_ext4_sysfs(const struct file *filp, void __user *arg)
 }
 
 
-static int do_set_init_pgrp(const struct file *filp, void __user *arg)
+static int do_set_init_pgrp(bool manager, void __user *arg)
 {
 	int err;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
@@ -500,7 +500,7 @@ out:
 	return err;
 }
 
-static int do_get_sulog_fd(const struct file *filp, void __user *arg)
+static int do_get_sulog_fd(bool manager, void __user *arg)
 {
 	struct ksu_get_sulog_fd_cmd cmd;
 
@@ -521,13 +521,13 @@ static int do_get_sulog_fd(const struct file *filp, void __user *arg)
 #endif
 }
 
-static int do_disable_escape_to_root(const struct file *filp, void __user *arg)
+static int do_disable_escape_to_root(bool manager, void __user *arg)
 {
 	set_thread_flag(TIF_KSU_DISABLE_ESCAPE_WITH_ROOT);
 	return 0;
 }
 
-static int do_get_app_states(const struct file *filp, void __user *arg)
+static int do_get_app_states(bool manager, void __user *arg)
 {
 	struct ksu_get_app_states_cmd cmd;
 	struct ksu_app_state *states;
@@ -581,7 +581,7 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
 	{ .cmd = 0, .name = NULL, .handler = NULL, .perm_check = NULL } // Sentinel
 };
 
-long ksu_supercall_handle_ioctl(const struct file *filp, unsigned int cmd, void __user *argp, bool su_session)
+long ksu_supercall_handle_ioctl(bool manager, unsigned int cmd, void __user *argp, bool su_session)
 {
 	int i;
 
@@ -592,15 +592,15 @@ long ksu_supercall_handle_ioctl(const struct file *filp, unsigned int cmd, void 
 	for (i = 0; ksu_ioctl_handlers[i].handler; i++) {
 		if (cmd == ksu_ioctl_handlers[i].cmd) {
 			// Check permission first
-			if (ksu_ioctl_handlers[i].perm_check && !ksu_ioctl_handlers[i].perm_check(filp) &&
+			if (ksu_ioctl_handlers[i].perm_check && !ksu_ioctl_handlers[i].perm_check(manager) &&
 				!(ksu_ioctl_handlers[i].allow_su_session && su_session)) {
 				pr_warn("ksu ioctl: permission denied for cmd=0x%x uid=%d\n", cmd, current_uid().val);
 				return -EPERM;
 			}
-			if (current_uid().val && ksu_is_seccomp_enabled() && ksu_is_manager_fd(filp))
+			if (current_uid().val && ksu_is_seccomp_enabled() && manager)
 				disable_seccomp();
 			// Execute handler
-			return ksu_ioctl_handlers[i].handler(filp, argp);
+			return ksu_ioctl_handlers[i].handler(manager, argp);
 		}
 	}
 

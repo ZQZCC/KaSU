@@ -119,11 +119,12 @@ static long ksu_tinyfs_ioctl(struct file *file, unsigned int cmd,
 			   unsigned long arg)
 {
 	bool su_session = file_inode(file) == ksu_tinyfs_su_inode;
+	bool manager = ksu_is_manager_fd(file);
 
-	if (!su_session && current_uid().val && !ksu_is_manager_fd(file))
+	if (!su_session && current_uid().val && !manager)
 		return -EPERM;
 	/* GRANT_ROOT rechecks the caller; session startup rights survive custom profiles. */
-	return ksu_supercall_handle_ioctl(file, cmd, (void __user *)arg, su_session);
+	return ksu_supercall_handle_ioctl(manager, cmd, (void __user *)arg, su_session);
 }
 
 static int ksu_tinyfs_read_folio(struct file *file, struct folio *folio)

@@ -2,8 +2,8 @@
 #define __KSU_H_SUPERCALL
 
 // IOCTL handler types
-typedef int (*ksu_ioctl_handler_t)(const struct file *filp, void __user *arg);
-typedef bool (*ksu_perm_check_t)(const struct file *filp);
+typedef int (*ksu_ioctl_handler_t)(bool manager, void __user *arg);
+typedef bool (*ksu_perm_check_t)(bool manager);
 
 // IOCTL command mapping
 struct ksu_ioctl_cmd_map {
